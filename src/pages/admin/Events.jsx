@@ -1,0 +1,186 @@
+import { useCallback, useEffect, useState } from 'react'
+import { supabase } from '../../lib/supabase'
+import { useAuth } from '../../context/AuthContext'
+
+const inputCls =
+  'w-full mb-4 rounded border border-gray-300 bg-blue-50 px-3 py-2 focus:outline-none focus:border-du-green'
+
+async function sendToTelegram(eventId) {
+  const { error } = await supabase.functions.invoke('notify-telegram', { body: { eventId } })
+  if (!error) return null
+  let msg = error.message
+  try {
+    const body = await error.context.json()
+    if (body?.error) msg = body.error
+  } catch { /* keep the generic message */ }
+  return msg
+}
+
+export default function Events() {
+  const { session } = useAuth()
+  const [events, setEvents] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [listError, setListError] = useState('')
+
+  const [title, setTitle] = useState('')
+  const [details, setDetails] = useState('')
+  const [eventDate, setEventDate] = useState('')
+  const [location, setLocation] = useState('')
+  const [telegram, setTelegram] = useState(true)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+  const [notice, setNotice] = useState('')
+  const [sendingId, setSendingId] = useState(null)
+
+  const load = useCallback(async () => {
+    const { data, error: e } = await supabase
+      .from('events').select('*').order('created_at', { ascending: false })
+    if (e) setListError(e.message)
+    else {
+      setListError('')
+      setEvents(data)
+    }
+    setLoading(false)
+  }, [])
+
+  useEffect(() => {
+    load()
+  }, [load])
+
+  async function post(e) {
+    e.preventDefault()
+    setError('')
+    setNotice('')
+    setBusy(true)
+
+    const { data, error: insErr } = await supabase
+      .from('events')
+      .insert({
+        title: title.trim(),
+        details: details.trim(),
+        event_date: eventDate ? new Date(eventDate).toISOString() : null,
+        location: location.trim() || null,
+        created_by: session.user.id,
+      })
+      .select('id')
+      .single()
+
+    if (insErr) {
+      setBusy(false)
+      return setError(insErr.message)
+    }
+
+    let message = 'Announcement posted on the student dashboards ✔'
+    if (telegram) {
+      const tgError = await sendToTelegram(data.id)
+      message = tgError
+        ? `Posted on the dashboards, but Telegram failed: ${tgError}. You can retry from the list below.`
+        : 'Posted on the dashboards and sent to Telegram ✔'
+    }
+    setBusy(false)
+    setNotice(message)
+    setTitle('')
+    setDetails('')
+    setEventDate('')
+    setLocation('')
+    load()
+  }
+
+  async function resend(id) {
+    setSendingId(id)
+    setNotice('')
+    const tgError = await sendToTelegram(id)
+    setSendingId(null)
+    setNotice(tgError ? `Telegram failed: ${tgError}` : 'Sent to Telegram ✔')
+    load()
+  }
+
+  async function remove(ev) {
+    if (!window.confirm(`Delete "${ev.title}"? Students will no longer see it. A message already sent to Telegram stays there.`)) return
+    const { error: e } = await supabase.from('events').delete().eq('id', ev.id)
+    if (e) return setListError(e.message)
+    load()
+  }
+
+  return (
+    <div className="grid gap-6 lg:grid-cols-[1fr_1.2fr]">
+      <form onSubmit={post} className="h-fit rounded-lg border-t-4 border-du-green bg-white p-5 shadow">
+        <h2 className="mb-4 text-lg font-bold text-du-green-dark">New announcement</h2>
+
+        <label className="mb-1 block text-sm text-gray-600">Title</label>
+        <input className={inputCls} value={title} onChange={(e) => setTitle(e.target.value)} maxLength={150} required />
+
+        <label className="mb-1 block text-sm text-gray-600">Details</label>
+        <textarea className={inputCls} rows={5} value={details} onChange={(e) => setDetails(e.target.value)} required />
+
+        <label className="mb-1 block text-sm text-gray-600">Date and time (optional)</label>
+        <input className={inputCls} type="datetime-local" value={eventDate} onChange={(e) => setEventDate(e.target.value)} />
+
+        <label className="mb-1 block text-sm text-gray-600">Location (optional)</label>
+        <input className={inputCls} value={location} onChange={(e) => setLocation(e.target.value)} />
+
+        <label className="mb-4 flex items-center gap-2 text-sm text-gray-700">
+          <input type="checkbox" checked={telegram} onChange={(e) => setTelegram(e.target.checked)} />
+          Also send to Telegram
+        </label>
+
+        {error && <p className="mb-3 text-sm text-du-red">{error}</p>}
+        {notice && <p className="mb-3 text-sm text-du-green-dark">{notice}</p>}
+
+        <button disabled={busy}
+          className="w-full rounded bg-du-green-dark py-2 font-semibold text-white hover:bg-du-green disabled:opacity-60">
+          {busy ? 'Posting...' : 'Post announcement'}
+        </button>
+      </form>
+
+      <div>
+        <h2 className="mb-3 text-lg font-bold text-du-green-dark">Posted announcements</h2>
+        {listError && <p className="mb-3 text-sm text-du-red">{listError}</p>}
+        {loading && <p className="text-gray-400">Loading...</p>}
+        {!loading && events.length === 0 && <p className="text-gray-400">No announcements yet.</p>}
+
+        <div className="space-y-3">
+          {events.map((ev) => (
+            <div key={ev.id} className="rounded-lg bg-white p-4 shadow">
+              <div className="flex items-start justify-between gap-3">
+                <h3 className="font-bold text-du-green-dark">{ev.title}</h3>
+                <span className="shrink-0 text-xs text-gray-400">
+                  {new Date(ev.created_at).toLocaleDateString()}
+                </span>
+              </div>
+              {(ev.event_date || ev.location) && (
+                <p className="mt-1 text-xs text-gray-500">
+                  {ev.event_date && `🗓 ${new Date(ev.event_date).toLocaleString()}`}
+                  {ev.event_date && ev.location && ' · '}
+                  {ev.location && `📍 ${ev.location}`}
+                </p>
+              )}
+              <p className="mt-2 line-clamp-3 whitespace-pre-line text-sm text-gray-700">{ev.details}</p>
+
+              <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs">
+                {ev.telegram_sent_at ? (
+                  <span className="rounded-full bg-green-100 px-2 py-0.5 font-semibold text-du-green-dark">
+                    Telegram: sent {new Date(ev.telegram_sent_at).toLocaleString()}
+                  </span>
+                ) : ev.telegram_error ? (
+                  <span className="rounded-full bg-red-100 px-2 py-0.5 font-semibold text-du-red" title={ev.telegram_error}>
+                    Telegram failed
+                  </span>
+                ) : (
+                  <span className="rounded-full bg-gray-100 px-2 py-0.5 text-gray-500">Not sent to Telegram</span>
+                )}
+                <div className="flex gap-3">
+                  <button disabled={sendingId === ev.id} onClick={() => resend(ev.id)}
+                    className="text-du-blue hover:underline disabled:opacity-50">
+                    {sendingId === ev.id ? 'Sending...' : ev.telegram_sent_at ? 'Send again' : 'Send to Telegram'}
+                  </button>
+                  <button onClick={() => remove(ev)} className="text-du-red hover:underline">Delete</button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
