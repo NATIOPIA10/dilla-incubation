@@ -1,13 +1,23 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Navigate } from 'react-router-dom'
+import { Navigate, useSearchParams } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../context/AuthContext'
+import IdCard from '../../components/IdCard'
 import ChangePassword from './ChangePassword'
 import ProfileForm from './ProfileForm'
-import IdCard from '../../components/IdCard'
+import Overview from './Overview'
+import Announcements from './Announcements'
 import ProjectStatus from './ProjectStatus'
-import Portfolio from './Portfolio'
 import ProjectTitles from './ProjectTitles'
+import Portfolio from './Portfolio'
+
+const TABS = [
+  { key: 'home', label: 'Home', icon: '🏠' },
+  { key: 'id', label: 'ID card', icon: '🪪' },
+  { key: 'news', label: 'News', icon: '📢' },
+  { key: 'status', label: 'Status', icon: '📋' },
+  { key: 'work', label: 'My work', icon: '🚀' },
+]
 
 function Card({ title, children, tone = 'green' }) {
   return (
@@ -20,109 +30,120 @@ function Card({ title, children, tone = 'green' }) {
   )
 }
 
-function RoomInfo({ student }) {
-  const [room, setRoom] = useState(undefined)
-
-  useEffect(() => {
-    supabase
-      .from('room_assignments')
-      .select('started_at, rooms(building, room_number)')
-      .eq('student_id', student.id)
-      .is('ended_at', null)
-      .maybeSingle()
-      .then(({ data }) => setRoom(data ?? null))
-  }, [student.id])
-
-  if (room === undefined) return null
-
-  return (
-    <div className="mt-6 max-w-[340px] rounded-lg bg-du-blue p-4 text-white shadow">
-      <p className="font-bold text-du-gold">Your room</p>
-      {room ? (
-        <>
-          <p className="mt-1 text-xl font-bold">
-            {room.rooms.building} · Room {room.rooms.room_number}
-          </p>
-          <p className="text-xs">Since {new Date(room.started_at).toLocaleDateString()}</p>
-        </>
-      ) : (
-        <p className="mt-1 text-sm">No room assigned yet. The admin will assign one soon.</p>
-      )}
-    </div>
-  )
-}
-
-function Announcements() {
-  const [events, setEvents] = useState(undefined)
-
-  useEffect(() => {
-    supabase
-      .from('events')
-      .select('id, title, details, event_date, location, created_at')
-      .order('created_at', { ascending: false })
-      .limit(10)
-      .then(({ data }) => setEvents(data ?? []))
-  }, [])
-
-  if (events === undefined) return null
-
-  return (
-    <div className="mt-8">
-      <h2 className="mb-3 font-bold text-du-green-dark">📢 Announcements</h2>
-      {events.length === 0 && <p className="text-sm text-gray-400">No announcements yet.</p>}
-      <div className="space-y-3">
-        {events.map((ev) => (
-          <div key={ev.id} className="rounded-lg border-l-4 border-du-green bg-white p-4 shadow">
-            <div className="flex items-start justify-between gap-3">
-              <h3 className="font-bold text-du-green-dark">{ev.title}</h3>
-              <span className="shrink-0 text-xs text-gray-400">
-                {new Date(ev.created_at).toLocaleDateString()}
-              </span>
-            </div>
-            {(ev.event_date || ev.location) && (
-              <p className="mt-1 text-xs text-gray-500">
-                {ev.event_date && `🗓 ${new Date(ev.event_date).toLocaleString()}`}
-                {ev.event_date && ev.location && ' · '}
-                {ev.location && `📍 ${ev.location}`}
-              </p>
-            )}
-            <p className="mt-2 whitespace-pre-line text-sm text-gray-700">{ev.details}</p>
-          </div>
-        ))}
-      </div>
-    </div>
-  )
-}
-
 function Dashboard({ student }) {
+  const [params, setParams] = useSearchParams()
   const [incubationId, setIncubationId] = useState(null)
+  const [work, setWork] = useState('titles')
+
+  const requested = params.get('tab')
+  const tab = TABS.some((t) => t.key === requested) ? requested : 'home'
+
+  const go = (key, sub) => {
+    if (sub) setWork(sub)
+    setParams(key === 'home' ? {} : { tab: key })
+    window.scrollTo({ top: 0 })
+  }
 
   useEffect(() => {
     supabase.rpc('incubation_id', { p_student: student.id }).then(({ data }) => setIncubationId(data))
   }, [student.id])
 
-  return (
-    <div className="max-w-4xl mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold text-du-green-dark mb-1">Welcome, {student.full_name}</h1>
-      <p className="text-gray-500 mb-6">Username: {student.username}</p>
+  const desktopTab = (t) => (
+    <button
+      key={t.key}
+      onClick={() => go(t.key)}
+      className={`rounded-full px-4 py-2 text-sm font-semibold ${
+        tab === t.key
+          ? 'bg-du-green text-white'
+          : 'border border-gray-300 bg-white text-gray-600 hover:border-du-green'
+      }`}
+    >
+      {t.icon} {t.label}
+    </button>
+  )
 
-      <h2 className="mb-3 font-bold text-du-green-dark">Your incubation center ID card</h2>
-      {incubationId ? (
-        <IdCard student={student} incubationId={incubationId} />
-      ) : (
-        <p className="text-gray-400">Loading your ID card...</p>
-      )}
-      <RoomInfo student={student} />
-      <Announcements />
-      <ProjectStatus student={student} />
-      <ProjectTitles student={student} />
-      <Portfolio student={student} />
-      <p className="mt-8 text-sm text-gray-500">
-        Your room, announcements, and project status will appear here in later steps.
-      </p>
+  const mobileTab = (t) => (
+    <button
+      key={t.key}
+      onClick={() => go(t.key)}
+      className={`flex flex-1 flex-col items-center gap-0.5 border-t-4 py-2 text-[11px] font-semibold ${
+        tab === t.key ? 'border-du-green text-du-green-dark' : 'border-transparent text-gray-500'
+      }`}
+    >
+      <span className="text-xl leading-none">{t.icon}</span>
+      {t.label}
+    </button>
+  )
+
+  return (
+    <div className="pb-24 md:pb-0">
+      <div className="mx-auto max-w-4xl px-4 py-6">
+        <div className="mb-6 hidden flex-wrap gap-2 md:flex">{TABS.map(desktopTab)}</div>
+
+        {tab === 'home' && <Overview student={student} incubationId={incubationId} go={go} />}
+
+        {tab === 'id' && (
+          <div>
+            <h2 className="mb-4 text-xl font-bold text-du-green-dark">🪪 My incubation center ID card</h2>
+            {incubationId ? (
+              <IdCard student={student} incubationId={incubationId} />
+            ) : (
+              <p className="text-gray-400">Loading your ID card...</p>
+            )}
+          </div>
+        )}
+
+        {tab === 'news' && <Announcements />}
+
+        {tab === 'status' && (
+          <div>
+            <h2 className="mb-4 text-xl font-bold text-du-green-dark">📋 Project status</h2>
+            <ProjectStatusWrapper student={student} />
+          </div>
+        )}
+
+        {tab === 'work' && (
+          <div>
+            <div className="mb-2 flex gap-2">
+              {[
+                ['titles', '💡 Project titles'],
+                ['projects', '🚀 Projects and rights'],
+              ].map(([key, label]) => (
+                <button
+                  key={key}
+                  onClick={() => setWork(key)}
+                  className={`rounded-full px-4 py-1 text-sm font-semibold ${
+                    work === key
+                      ? 'bg-du-blue text-white'
+                      : 'border border-gray-300 bg-white text-gray-600 hover:border-du-blue'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            {work === 'titles' ? <ProjectTitles student={student} /> : <Portfolio student={student} />}
+          </div>
+        )}
+      </div>
+
+      {/* Phone: bottom bar */}
+      <nav className="fixed inset-x-0 bottom-0 z-20 flex border-t border-gray-200 bg-white shadow-[0_-2px_8px_rgba(0,0,0,0.08)] md:hidden">
+        {TABS.map(mobileTab)}
+      </nav>
     </div>
   )
 }
+
+// The status page already has its own heading, so it only needs a small wrapper
+function ProjectStatusWrapper({ student }) {
+  return (
+    <div className="-mt-8">
+      <ProjectStatus student={student} />
+    </div>
+  )
+}
+
 export default function StudentHome() {
   const { session, isAdmin, loading: authLoading } = useAuth()
   const [student, setStudent] = useState(undefined) // undefined = loading, null = none

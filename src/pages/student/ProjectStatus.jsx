@@ -139,7 +139,10 @@ export default function ProjectStatus({ student }) {
     load()
   }, [load])
 
-  if (requests === undefined || requests.length === 0) return null
+  if (requests === undefined) return null
+if (requests.length === 0) {
+  return <p className="mt-8 text-sm text-gray-400">No status requests yet. When the admin asks for an update, it will appear here.</p>
+}
 
   return (
     <div className="mt-8">
