@@ -10,6 +10,16 @@ const currentRoom = (s) => {
 }
 
 function StudentModal({ student, onClose, onChanged }) {
+  const [titles, setTitles] = useState([])
+
+useEffect(() => {
+  supabase
+    .from('project_titles')
+    .select('id, title, created_at')
+    .eq('student_id', student.id)
+    .order('created_at')
+    .then(({ data }) => setTitles(data ?? []))
+}, [student.id])  
   const [reason, setReason] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
@@ -128,6 +138,29 @@ function StudentModal({ student, onClose, onChanged }) {
             {!isActive && row('Deactivated on', student.deactivated_at && new Date(student.deactivated_at).toLocaleDateString())}
             {!isActive && row('Reason', student.deactivation_reason)}
 
+            <div className="mt-3">
+  <p className="mb-1 text-sm text-gray-500">Project titles</p>
+  {(student.proposed_titles?.length ?? 0) + titles.length === 0 ? (
+    <p className="text-sm text-gray-400">None.</p>
+  ) : (
+    <ul className="list-disc space-y-1 pl-5 text-sm font-semibold">
+      {(student.proposed_titles ?? []).map((t, i) => (
+        <li key={`r${i}`}>
+          {t} <span className="text-xs font-normal text-gray-400">(registration)</span>
+        </li>
+      ))}
+      {titles.map((t) => (
+        <li key={t.id}>
+          {t.title}{' '}
+          <span className="text-xs font-normal text-gray-400">
+            ({new Date(t.created_at).toLocaleDateString()})
+          </span>
+        </li>
+      ))}
+    </ul>
+  )}
+</div>
+
             {isActive && (
               <div className="mt-5 space-y-5">
                 <div>
@@ -174,7 +207,7 @@ export default function Students() {
     const { data, error: e } = await supabase
       .from('students')
       .select(
-        'id, full_name, department, username, university_id, phone, status, profile_status, ' +
+        'id, full_name, department, username, university_id, phone, status, profile_status, proposed_titles, ' +
         'id_number, id_year, deactivated_at, deactivation_reason, ' +
         'room_assignments(ended_at, rooms(building, room_number))'
       )

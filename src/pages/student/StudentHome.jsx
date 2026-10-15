@@ -7,6 +7,7 @@ import ProfileForm from './ProfileForm'
 import IdCard from '../../components/IdCard'
 import ProjectStatus from './ProjectStatus'
 import Portfolio from './Portfolio'
+import ProjectTitles from './ProjectTitles'
 
 function Card({ title, children, tone = 'green' }) {
   return (
@@ -114,6 +115,7 @@ function Dashboard({ student }) {
       <RoomInfo student={student} />
       <Announcements />
       <ProjectStatus student={student} />
+      <ProjectTitles student={student} />
       <Portfolio student={student} />
       <p className="mt-8 text-sm text-gray-500">
         Your room, announcements, and project status will appear here in later steps.

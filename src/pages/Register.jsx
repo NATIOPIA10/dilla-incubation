@@ -1,14 +1,15 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import IdPhotoUpload from '../components/IdPhotoUpload'
 import { supabase } from '../lib/supabase'
+import IdPhotoUpload from '../components/IdPhotoUpload'
 
-const MAX_SIZE = 3 * 1024 * 1024 // 3 MB, same as the bucket limit
-const TYPES = ['image/jpeg', 'image/png', 'image/webp']
+const MIN_TITLES = 3
+const MAX_TITLES = 6
 
 export default function Register() {
   const [windowInfo, setWindowInfo] = useState(undefined) // undefined = loading, null = closed
   const [form, setForm] = useState({ fullName: '', universityId: '', phone: '', year: '' })
+  const [titles, setTitles] = useState(['', '', ''])
   const [file, setFile] = useState(null)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -26,25 +27,38 @@ export default function Register() {
 
   const set = (key) => (e) => setForm({ ...form, [key]: e.target.value })
 
-  function pickFile(e) {
-    const f = e.target.files[0]
-    setError('')
-    if (!f) return setFile(null)
-    if (!TYPES.includes(f.type)) {
-      e.target.value = ''
-      return setError('The ID photo must be a JPG, PNG, or WEBP image.')
+  const setTitle = (i, value) => setTitles(titles.map((t, idx) => (idx === i ? value : t)))
+  const addTitle = () => titles.length < MAX_TITLES && setTitles([...titles, ''])
+  const removeTitle = (i) => titles.length > MIN_TITLES && setTitles(titles.filter((_, idx) => idx !== i))
+
+  // Titles that count: not empty, not repeated
+  const cleanedTitles = () => {
+    const seen = new Set()
+    const out = []
+    for (const t of titles) {
+      const v = t.trim()
+      if (v && !seen.has(v.toLowerCase())) {
+        seen.add(v.toLowerCase())
+        out.push(v)
+      }
     }
-    if (f.size > MAX_SIZE) {
-      e.target.value = ''
-      return setError('The ID photo must be smaller than 3 MB.')
-    }
-    setFile(f)
+    return out
   }
+  const validCount = cleanedTitles().length
 
   async function handleSubmit(e) {
     e.preventDefault()
     setError('')
+
+    const cleaned = cleanedTitles()
+    if (cleaned.length < MIN_TITLES) {
+      return setError(`Please enter at least ${MIN_TITLES} different project titles.`)
+    }
+    if (cleaned.some((t) => t.length < 3 || t.length > 150)) {
+      return setError('Each project title must be between 3 and 150 characters.')
+    }
     if (!file) return setError('Please upload a photo of your university ID.')
+
     setLoading(true)
 
     // 1. Upload the ID photo with a random, unguessable file name
@@ -65,6 +79,7 @@ export default function Register() {
       p_full_name: form.fullName,
       p_phone: form.phone,
       p_year: Number(form.year),
+      p_titles: cleaned,
     })
     setLoading(false)
     if (regError) return setError(regError.message)
@@ -99,8 +114,8 @@ export default function Register() {
         <div className="bg-white border-t-4 border-du-green rounded shadow p-8">
           <h1 className="text-2xl font-bold text-du-green-dark mb-2">Registration submitted ✔</h1>
           <p className="text-gray-600 mb-4">
-            The incubation center admin will review your details and ID photo. If approved,
-            the admin will give you a username and a temporary password.
+            The incubation center admin will review your details, project titles, and ID photo.
+            If approved, the admin will give you a username and a temporary password.
           </p>
           <Link to="/" className="text-du-green-dark underline">Back to login</Link>
         </div>
@@ -135,8 +150,56 @@ export default function Register() {
           <option value="6">5th year</option>
         </select>
 
+        {/* Project titles */}
+        <div className="mb-4 rounded-lg border border-du-green/40 bg-green-50/50 p-4">
+          <div className="mb-1 flex items-center justify-between">
+            <label className="text-sm font-semibold text-du-green-dark">
+              Project titles you want to work on
+            </label>
+            <span
+              className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
+                validCount >= MIN_TITLES ? 'bg-green-100 text-du-green-dark' : 'bg-yellow-100 text-yellow-800'
+              }`}
+            >
+              {Math.min(validCount, MIN_TITLES)} of {MIN_TITLES} required
+            </span>
+          </div>
+          <p className="mb-3 text-xs text-gray-500">
+            Enter at least {MIN_TITLES} different titles for the projects you plan to build at the
+            incubation center. Empty and repeated titles do not count.
+          </p>
+
+          {titles.map((t, i) => (
+            <div key={i} className="mb-2 flex items-center gap-2">
+              <span className="w-5 shrink-0 text-sm text-gray-500">{i + 1}.</span>
+              <input
+                className="w-full rounded border border-gray-300 bg-blue-50 px-3 py-2 focus:border-du-green focus:outline-none"
+                value={t}
+                onChange={(e) => setTitle(i, e.target.value)}
+                maxLength={150}
+                placeholder={`Project title ${i + 1}`}
+              />
+              {titles.length > MIN_TITLES && (
+                <button
+                  type="button"
+                  onClick={() => removeTitle(i)}
+                  className="shrink-0 px-2 text-xl leading-none text-du-red hover:opacity-70"
+                  aria-label={`Remove title ${i + 1}`}
+                >
+                  ×
+                </button>
+              )}
+            </div>
+          ))}
+
+          {titles.length < MAX_TITLES && (
+            <button type="button" onClick={addTitle} className="mt-1 text-sm font-semibold text-du-blue hover:underline">
+              + Add another title
+            </button>
+          )}
+        </div>
+
         <IdPhotoUpload file={file} onChange={setFile} />
-        <p className="text-xs text-gray-500 mb-4">JPG, PNG, or WEBP, up to 3 MB. The text must be readable.</p>
 
         {error && <p className="text-sm text-du-red mb-3">{error}</p>}
 

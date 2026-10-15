@@ -133,6 +133,18 @@ function ReviewModal({ student, onClose, onDone }) {
                 {row('Registered', new Date(student.created_at).toLocaleString())}
                 {row('Status', student.status)}
                 {student.rejection_reason && row('Reason', student.rejection_reason)}
+                <div className="mt-3">
+  <p className="mb-1 text-sm text-gray-500">Proposed project titles</p>
+  {student.proposed_titles?.length ? (
+    <ol className="list-decimal space-y-1 pl-5 text-sm font-semibold">
+      {student.proposed_titles.map((t, i) => (
+        <li key={i}>{t}</li>
+      ))}
+    </ol>
+  ) : (
+    <p className="text-sm text-gray-400">None (registered before this rule)</p>
+  )}
+</div>
               </div>
 
               <div>
@@ -234,8 +246,7 @@ export default function Registrations() {
     const statuses = TABS.find((t) => t.key === tab).statuses
     const { data, error: e } = await supabase
       .from('students')
-      .select('id, full_name, university_id, phone, year_of_study, status, rejection_reason, university_id_photo_path, created_at, username')
-      .in('status', statuses)
+      .select('id, full_name, university_id, phone, year_of_study, status, rejection_reason, university_id_photo_path, created_at, username, proposed_titles')      .in('status', statuses)
       .order('created_at', { ascending: true })
     setLoading(false)
     if (e) return setError(e.message)
