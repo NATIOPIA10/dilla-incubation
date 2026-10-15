@@ -10,7 +10,6 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@rolldown/binding-win32-x64-msvc": "^1.2.14",
     "@supabase/supabase-js": "^2.109.0",
     "@tailwindcss/vite": "^4.3.3",
     "html-to-image": "^1.11.13",

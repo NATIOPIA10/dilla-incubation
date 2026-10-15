@@ -17,6 +17,7 @@ import StatusRequests from './pages/admin/StatusRequests'
 import Verification from './pages/admin/Verification'
 import Certificates from './pages/admin/Certificates'
 import CertificateView from './pages/admin/CertificateView'
+import RegistrationWindows from './pages/admin/RegistrationWindows'
 
 export default function App() {
   return (
@@ -45,6 +46,7 @@ export default function App() {
           <Route path="verification" element={<Verification />} />
           <Route path="certificates" element={<Certificates />} />
           <Route path="certificates/:id" element={<CertificateView />} />
+          <Route path="windows" element={<RegistrationWindows />} />
         </Route>
       </Route>
     </Routes>

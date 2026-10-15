@@ -10,6 +10,7 @@ const tabs = [
   { to: '/admin/status', label: 'Project status' },
   { to: '/admin/verification', label: 'Projects and rights' },
   { to: '/admin/certificates', label: 'Certificates' },
+  { to: '/admin/windows', label: 'Registration dates' },
 ]
 
 export default function AdminLayout() {
