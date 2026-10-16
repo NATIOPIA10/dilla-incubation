@@ -1,15 +1,17 @@
 import { useState } from 'react'
 import { supabase } from '../../lib/supabase'
 
-export default function ChangePassword({ onDone }) {
+export default function ChangePassword({ onDone, requiredChange = false }) {
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
   const [error, setError] = useState('')
+  const [notice, setNotice] = useState('')
   const [loading, setLoading] = useState(false)
 
   async function handleSubmit(e) {
     e.preventDefault()
     setError('')
+    setNotice('')
     if (password.length < 8) return setError('Use at least 8 characters.')
     if (password !== confirm) return setError('The two passwords do not match.')
 
@@ -19,10 +21,18 @@ export default function ChangePassword({ onDone }) {
       setLoading(false)
       return setError(pwError.message)
     }
-    const { error: flagError } = await supabase.rpc('complete_password_change')
-    setLoading(false)
-    if (flagError) return setError(flagError.message)
-    onDone()
+    if (requiredChange) {
+      const { error: flagError } = await supabase.rpc('complete_password_change')
+      setLoading(false)
+      if (flagError) return setError(flagError.message)
+      onDone()
+    } else {
+      setLoading(false)
+      setPassword('')
+      setConfirm('')
+      setNotice('Your password has been changed.')
+      onDone?.()
+    }
   }
 
   const input =
@@ -31,9 +41,13 @@ export default function ChangePassword({ onDone }) {
   return (
     <div className="max-w-md mx-auto px-4 py-10">
       <form onSubmit={handleSubmit} className="bg-white border-t-4 border-du-green rounded shadow p-6">
-        <h1 className="text-2xl font-bold text-du-green-dark">Set your new password</h1>
+        <h1 className="text-2xl font-bold text-du-green-dark">
+          {requiredChange ? 'Set your new password' : 'Change your password'}
+        </h1>
         <p className="text-sm text-gray-500 mb-5">
-          You logged in with a temporary password. Please choose your own password to continue.
+          {requiredChange
+            ? 'You logged in with a temporary password. Please choose your own password to continue.'
+            : 'Choose a new password for your student account.'}
         </p>
 
         <label className="block text-sm text-gray-600 mb-1">New password</label>
@@ -46,10 +60,15 @@ export default function ChangePassword({ onDone }) {
 
         <p className="text-xs text-gray-500 mb-4">At least 8 characters. Mix letters and numbers.</p>
         {error && <p className="text-sm text-du-red mb-3">{error}</p>}
+        {notice && <p className="text-sm text-du-green-dark mb-3">{notice}</p>}
 
         <button disabled={loading}
           className="w-full rounded bg-du-green-dark py-2 font-semibold text-white hover:bg-du-green disabled:opacity-60">
-          {loading ? 'Saving...' : 'Save password and continue'}
+          {loading
+            ? 'Saving...'
+            : requiredChange
+              ? 'Save password and continue'
+              : 'Change password'}
         </button>
       </form>
     </div>

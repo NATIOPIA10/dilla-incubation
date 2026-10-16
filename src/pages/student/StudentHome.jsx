@@ -17,6 +17,7 @@ const TABS = [
   { key: 'news', label: 'News', icon: '📢' },
   { key: 'status', label: 'Status', icon: '📋' },
   { key: 'work', label: 'My work', icon: '🚀' },
+  { key: 'password', label: 'Password', icon: '🔐' },
 ]
 
 function Card({ title, children, tone = 'green' }) {
@@ -125,6 +126,8 @@ function Dashboard({ student }) {
             {work === 'titles' ? <ProjectTitles student={student} /> : <Portfolio student={student} />}
           </div>
         )}
+
+        {tab === 'password' && <ChangePassword />}
       </div>
 
       {/* Phone: bottom bar */}
@@ -147,6 +150,7 @@ function ProjectStatusWrapper({ student }) {
 export default function StudentHome() {
   const { session, isAdmin, loading: authLoading } = useAuth()
   const [student, setStudent] = useState(undefined) // undefined = loading, null = none
+  const [changingPassword, setChangingPassword] = useState(false)
   const userId = session?.user?.id
 
   const load = useCallback(async () => {
@@ -175,16 +179,56 @@ export default function StudentHome() {
     return <Card title="Account closed" tone="red">Your incubation center account is no longer active.</Card>
   }
 
-  if (student.must_change_password) return <ChangePassword onDone={load} />
+  if (student.must_change_password) return <ChangePassword onDone={load} requiredChange />
 
   if (['draft', 'rejected'].includes(student.profile_status)) {
-    return <ProfileForm student={student} onChanged={load} />
+    return changingPassword ? (
+      <div>
+        <button
+          onClick={() => setChangingPassword(false)}
+          className="ml-4 mt-4 text-sm font-semibold text-du-blue hover:underline"
+        >
+          ← Back to profile
+        </button>
+        <ChangePassword onDone={() => setChangingPassword(false)} />
+      </div>
+    ) : (
+      <>
+        <ProfileForm student={student} onChanged={load} />
+        <div className="mx-auto max-w-2xl px-4 pb-8 text-right">
+          <button
+            onClick={() => setChangingPassword(true)}
+            className="text-sm font-semibold text-du-blue hover:underline"
+          >
+            Change password
+          </button>
+        </div>
+      </>
+    )
   }
 
   if (student.profile_status === 'submitted') {
-    return (
+    return changingPassword ? (
+      <div>
+        <button
+          onClick={() => setChangingPassword(false)}
+          className="ml-4 mt-4 text-sm font-semibold text-du-blue hover:underline"
+        >
+          ← Back to profile status
+        </button>
+        <ChangePassword onDone={() => setChangingPassword(false)} />
+      </div>
+    ) : (
       <Card title="Profile under review">
-        Thank you. The admin is reviewing your profile. You will receive your incubation center ID once it is approved.
+        <p>
+          Thank you. The admin is reviewing your profile. You will receive your incubation center ID once it is approved.
+        </p>
+        <button
+          onClick={() => setChangingPassword(true)}
+          className="mt-4 text-sm font-semibold text-du-blue hover:underline"
+        >
+          Change password
+        </button>
       </Card>
     )
   }

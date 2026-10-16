@@ -114,7 +114,8 @@ export default function Login() {
             {loading ? 'Logging in...' : 'Login'}
           </button>
           <p className="mt-3 text-sm text-gray-500">
-            Forgot your password? Please contact the incubation center admin.
+            Forgot your password? Contact the incubation center admin to receive a temporary password.
+            You’ll be asked to change it after logging in.
           </p>
         </form>
       </section>
