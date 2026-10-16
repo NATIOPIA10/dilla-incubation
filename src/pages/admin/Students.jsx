@@ -27,24 +27,6 @@ useEffect(() => {
   const [creds, setCreds] = useState(null)
   const [copied, setCopied] = useState(false)
   const [deactivated, setDeactivated] = useState(false)
-  const [exporting, setExporting] = useState(false)
-
-  async function doExport() {
-  setError('')
-  setExporting(true)
-  try {
-    const n = await exportStudents(
-      tab === 'active'
-        ? { statuses: ['approved', 'active'], title: 'Active students', fileLabel: 'active-students' }
-        : { statuses: ['deactivated'], title: 'Deactivated students', fileLabel: 'deactivated-students' }
-    )
-    if (n === 0) setError('There are no students to export.')
-  } catch (e) {
-    setError(`Export failed: ${e.message}`)
-  } finally {
-    setExporting(false)
-  }
-}
 
   const isActive = ['approved', 'active'].includes(student.status)
 
@@ -218,6 +200,24 @@ export default function Students() {
   const [error, setError] = useState('')
   const [search, setSearch] = useState('')
   const [selected, setSelected] = useState(null)
+  const [exporting, setExporting] = useState(false)
+
+  async function doExport() {
+    setError('')
+    setExporting(true)
+    try {
+      const n = await exportStudents(
+        tab === 'active'
+          ? { statuses: ['approved', 'active'], title: 'Active students', fileLabel: 'active-students' }
+          : { statuses: ['deactivated'], title: 'Deactivated students', fileLabel: 'deactivated-students' }
+      )
+      if (n === 0) setError('There are no students to export.')
+    } catch (e) {
+      setError(`Export failed: ${e.message}`)
+    } finally {
+      setExporting(false)
+    }
+  }
 
   const load = useCallback(async () => {
     setLoading(true)
