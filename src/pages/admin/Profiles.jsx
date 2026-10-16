@@ -33,7 +33,7 @@ function ProfileModal({ student, onClose, onDone }) {
   }, [student.photo_path])
 
   async function approve() {
-    if (!window.confirm('Approve this profile and issue the incubation ID? The ID cannot be changed afterwards.')) return
+    if (!window.confirm('Approve this profile and release the ID card?')) return
     setError('')
     setBusy(true)
     const { data, error: e } = await supabase.rpc('approve_profile', { p_student: student.id })
@@ -75,7 +75,7 @@ function ProfileModal({ student, onClose, onDone }) {
         {issuedId ? (
           <div className="p-8 text-center">
             <h3 className="text-xl font-bold text-du-green-dark mb-2">Profile approved ✔</h3>
-            <p className="text-gray-500">Incubation center ID issued to {student.full_name}:</p>
+            <p className="text-gray-500">ID card released to {student.full_name}:</p>
             <p className="my-4 text-4xl font-mono font-bold text-du-green-dark">{issuedId}</p>
             <button onClick={onDone} className="rounded bg-du-green-dark px-6 py-2 font-semibold text-white hover:bg-du-green">
               Done
@@ -130,7 +130,7 @@ function ProfileModal({ student, onClose, onDone }) {
                         onClick={approve}
                         className="rounded bg-du-green-dark px-4 py-2 font-semibold text-white hover:bg-du-green disabled:opacity-50"
                       >
-                        {busy ? 'Working...' : 'Approve and issue ID'}
+                        {busy ? 'Working...' : 'Approve profile and release ID card'}
                       </button>
                       <button
                         onClick={() => setRejecting(true)}
