@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 
 const cards = [
-  { icon: '📝', title: 'New Student Registration', text: 'Students above second year can register when registration is open.', to: '/register' },
+  { icon: '📝', title: 'New Student Registration', text: 'Students from the 2nd to the 5th year can register when registration is open.', to: '/register' },
   { icon: '🎓', title: 'Student Dashboard', text: 'Log in to update your profile, see your room, and submit project status.' },
   { icon: '📢', title: 'Announcements', text: 'Events and notices are posted here and on our Telegram channel.' },
 ]
@@ -20,9 +20,11 @@ export default function Login() {
     setError('')
     setLoading(true)
 
-    // Admins log in with a real email; students with their username
+    // Admins log in with a real email; students with their incubation ID (DUIC-0472/26)
     const id = username.trim().toLowerCase()
-    const email = id.includes('@') ? id : `${id}@inc.local`
+    const email = id.includes('@')
+      ? id
+      : `${id.replace(/\s+/g, '').replace(/\//g, '-')}@inc.local`
 
     const { data, error: authError } = await supabase.auth.signInWithPassword({ email, password })
     if (authError) {
@@ -82,14 +84,16 @@ export default function Login() {
         >
           <h2 className="text-lg text-gray-600 mb-4">Login to your account</h2>
 
-          <label className="block text-sm text-gray-600 mb-1">Username</label>
+          <label className="block text-sm text-gray-600 mb-1">Username (your incubation ID)</label>
           <input
-            className="w-full mb-4 rounded border border-gray-300 bg-blue-50 px-3 py-2 focus:outline-none focus:border-du-green"
+            className="w-full mb-1 rounded border border-gray-300 bg-blue-50 px-3 py-2 focus:outline-none focus:border-du-green"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             autoComplete="username"
+            placeholder="e.g. DUIC-0472/26"
             required
           />
+          <p className="text-xs text-gray-500 mb-4">Admins: use your email address.</p>
 
           <label className="block text-sm text-gray-600 mb-1">Password</label>
           <input
