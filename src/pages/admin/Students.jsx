@@ -11,24 +11,32 @@ const currentRoom = (s) => {
 }
 
 function StudentModal({ student, onClose, onChanged }) {
-  const [titles, setTitles] = useState([])
-
-useEffect(() => {
-  supabase
-    .from('project_titles')
-    .select('id, title, created_at')
-    .eq('student_id', student.id)
-    .order('created_at')
-    .then(({ data }) => setTitles(data ?? []))
-}, [student.id])  
   const [reason, setReason] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [creds, setCreds] = useState(null)
   const [copied, setCopied] = useState(false)
   const [deactivated, setDeactivated] = useState(false)
+  const [reactivated, setReactivated] = useState(false)
+  const [titles, setTitles] = useState([])
+  const [log, setLog] = useState([])
 
   const isActive = ['approved', 'active'].includes(student.status)
+
+  useEffect(() => {
+    supabase
+      .from('project_titles')
+      .select('id, title, created_at')
+      .eq('student_id', student.id)
+      .order('created_at')
+      .then(({ data }) => setTitles(data ?? []))
+    supabase
+      .from('student_status_log')
+      .select('id, action, reason, done_at')
+      .eq('student_id', student.id)
+      .order('done_at', { ascending: false })
+      .then(({ data }) => setLog(data ?? []))
+  }, [student.id])
 
   async function resetPassword() {
     if (!window.confirm(`Reset the password of ${student.full_name}? The old password will stop working.`)) return
@@ -66,7 +74,7 @@ useEffect(() => {
     setError('')
     if (!reason.trim()) return setError('Please write the reason (for example: graduated).')
     if (!window.confirm(
-      `Deactivate ${student.full_name}?\n\nThe room will be freed, the ID will be voided, and the login will be blocked. This cannot be undone from this page.`
+      `Deactivate ${student.full_name}?\n\nThe room will be freed, the ID will be voided, and the login will be blocked. You can bring the student back later with Reactivate.`
     )) return
     setBusy(true)
     const { error: e } = await supabase.rpc('deactivate_student', {
@@ -78,6 +86,21 @@ useEffect(() => {
     setDeactivated(true)
   }
 
+  async function reactivate() {
+    setError('')
+    if (!window.confirm(
+      `Bring ${student.full_name} back?\n\nTheir login and incubation ID will work again. They will not have a room until you assign one.`
+    )) return
+    setBusy(true)
+    const { error: e } = await supabase.rpc('reactivate_student', {
+      p_student: student.id,
+      p_reason: reason.trim() || null,
+    })
+    setBusy(false)
+    if (e) return setError(e.message)
+    setReactivated(true)
+  }
+
   const row = (label, value) => (
     <div className="flex justify-between gap-4 border-b border-gray-100 py-2 text-sm">
       <span className="text-gray-500">{label}</span>
@@ -85,17 +108,31 @@ useEffect(() => {
     </div>
   )
 
+  const finished = deactivated || reactivated || creds
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
       <div className="max-h-[92vh] w-full max-w-lg overflow-y-auto rounded-lg bg-white shadow-xl">
         <div className="flex items-center justify-between bg-du-green px-5 py-3 text-white">
           <h2 className="font-bold">{student.full_name}</h2>
-          {!deactivated && !creds && (
+          {!finished && (
             <button onClick={onClose} className="text-2xl leading-none hover:text-du-gold">×</button>
           )}
         </div>
 
-        {deactivated ? (
+        {reactivated ? (
+          <div className="p-8 text-center">
+            <h3 className="mb-2 text-xl font-bold text-du-green-dark">Student reactivated ✔</h3>
+            <p className="text-sm text-gray-600">
+              The login and the incubation ID work again, with the same password as before.
+              If the student forgot it, use Reset password. Assign a room in the Rooms tab.
+            </p>
+            <button onClick={onChanged}
+              className="mt-5 rounded bg-du-green-dark px-6 py-2 font-semibold text-white hover:bg-du-green">
+              Done
+            </button>
+          </div>
+        ) : deactivated ? (
           <div className="p-8 text-center">
             <h3 className="mb-2 text-xl font-bold text-du-green-dark">Student deactivated ✔</h3>
             <p className="text-sm text-gray-600">
@@ -140,27 +177,44 @@ useEffect(() => {
             {!isActive && row('Reason', student.deactivation_reason)}
 
             <div className="mt-3">
-  <p className="mb-1 text-sm text-gray-500">Project titles</p>
-  {(student.proposed_titles?.length ?? 0) + titles.length === 0 ? (
-    <p className="text-sm text-gray-400">None.</p>
-  ) : (
-    <ul className="list-disc space-y-1 pl-5 text-sm font-semibold">
-      {(student.proposed_titles ?? []).map((t, i) => (
-        <li key={`r${i}`}>
-          {t} <span className="text-xs font-normal text-gray-400">(registration)</span>
-        </li>
-      ))}
-      {titles.map((t) => (
-        <li key={t.id}>
-          {t.title}{' '}
-          <span className="text-xs font-normal text-gray-400">
-            ({new Date(t.created_at).toLocaleDateString()})
-          </span>
-        </li>
-      ))}
-    </ul>
-  )}
-</div>
+              <p className="mb-1 text-sm text-gray-500">Project titles</p>
+              {(student.proposed_titles?.length ?? 0) + titles.length === 0 ? (
+                <p className="text-sm text-gray-400">None.</p>
+              ) : (
+                <ul className="list-disc space-y-1 pl-5 text-sm font-semibold">
+                  {(student.proposed_titles ?? []).map((t, i) => (
+                    <li key={`r${i}`}>
+                      {t} <span className="text-xs font-normal text-gray-400">(registration)</span>
+                    </li>
+                  ))}
+                  {titles.map((t) => (
+                    <li key={t.id}>
+                      {t.title}{' '}
+                      <span className="text-xs font-normal text-gray-400">
+                        ({new Date(t.created_at).toLocaleDateString()})
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+
+            {log.length > 0 && (
+              <div className="mt-3">
+                <p className="mb-1 text-sm text-gray-500">History</p>
+                <ul className="space-y-1 text-sm">
+                  {log.map((l) => (
+                    <li key={l.id}>
+                      <span className={`font-semibold ${l.action === 'reactivated' ? 'text-du-green-dark' : 'text-du-red'}`}>
+                        {l.action === 'reactivated' ? 'Reactivated' : 'Deactivated'}
+                      </span>{' '}
+                      on {new Date(l.done_at).toLocaleDateString()}
+                      {l.reason && `: ${l.reason}`}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
 
             {isActive && (
               <div className="mt-5 space-y-5">
@@ -185,6 +239,24 @@ useEffect(() => {
               </div>
             )}
 
+            {!isActive && (
+              <div className="mt-5 rounded-lg border border-du-green/40 bg-green-50 p-4">
+                <p className="mb-1 text-sm font-bold text-du-green-dark">Bring this student back</p>
+                <p className="mb-3 text-xs text-gray-600">
+                  Use this if the student was deactivated by mistake or returns to the center.
+                  The login and the incubation ID work again. The student needs a new room.
+                </p>
+                <label className="mb-1 block text-sm text-gray-600">Note (optional)</label>
+                <textarea rows={2} value={reason} onChange={(e) => setReason(e.target.value)}
+                  placeholder="e.g. deactivated by mistake"
+                  className="mb-3 w-full rounded border border-gray-300 bg-white px-3 py-2 focus:border-du-green focus:outline-none" />
+                <button disabled={busy} onClick={reactivate}
+                  className="rounded bg-du-green-dark px-4 py-2 text-sm font-semibold text-white hover:bg-du-green disabled:opacity-50">
+                  {busy ? 'Working...' : 'Reactivate'}
+                </button>
+              </div>
+            )}
+
             {error && <p className="mt-4 text-sm text-du-red">{error}</p>}
           </div>
         )}
@@ -201,23 +273,6 @@ export default function Students() {
   const [search, setSearch] = useState('')
   const [selected, setSelected] = useState(null)
   const [exporting, setExporting] = useState(false)
-
-  async function doExport() {
-    setError('')
-    setExporting(true)
-    try {
-      const n = await exportStudents(
-        tab === 'active'
-          ? { statuses: ['approved', 'active'], title: 'Active students', fileLabel: 'active-students' }
-          : { statuses: ['deactivated'], title: 'Deactivated students', fileLabel: 'deactivated-students' }
-      )
-      if (n === 0) setError('There are no students to export.')
-    } catch (e) {
-      setError(`Export failed: ${e.message}`)
-    } finally {
-      setExporting(false)
-    }
-  }
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -240,6 +295,23 @@ export default function Students() {
   useEffect(() => {
     load()
   }, [load])
+
+  async function doExport() {
+    setError('')
+    setExporting(true)
+    try {
+      const n = await exportStudents(
+        tab === 'active'
+          ? { statuses: ['approved', 'active'], title: 'Active students', fileLabel: 'active-students' }
+          : { statuses: ['deactivated'], title: 'Deactivated students', fileLabel: 'deactivated-students' }
+      )
+      if (n === 0) setError('There are no students to export.')
+    } catch (e) {
+      setError(`Export failed: ${e.message}`)
+    } finally {
+      setExporting(false)
+    }
+  }
 
   const q = search.trim().toLowerCase()
   const shown = rows.filter(
@@ -270,15 +342,13 @@ export default function Students() {
             {label}
           </button>
         ))}
-
         <button
-  onClick={doExport}
-  disabled={exporting}
-  className="rounded-full border border-du-green-dark px-4 py-1 text-sm font-semibold text-du-green-dark hover:bg-green-50 disabled:opacity-60"
->
-  {exporting ? 'Preparing...' : '⬇ Export to Excel'}
-</button>
-
+          onClick={doExport}
+          disabled={exporting}
+          className="rounded-full border border-du-green-dark px-4 py-1 text-sm font-semibold text-du-green-dark hover:bg-green-50 disabled:opacity-60"
+        >
+          {exporting ? 'Preparing...' : '⬇ Export to Excel'}
+        </button>
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
