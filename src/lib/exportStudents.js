@@ -1,6 +1,5 @@
 import { supabase } from './supabase'
-
-const YEARS = { 2: '2nd year', 3: '3rd year', 4: '4th year', 5: '5th year' }
+import { yearOfStudyLabel } from './years'
 
 const fullId = (s) =>
   s.id_number ? `DUIC-${s.id_number}/${String(s.id_year % 100).padStart(2, '0')}` : ''
@@ -75,7 +74,7 @@ export async function exportStudents({ statuses, title, fileLabel }) {
       cap(s.gender),
       s.university_id,
       s.department ?? '',
-      YEARS[s.year_of_study] ?? String(s.year_of_study ?? ''),
+      yearOfStudyLabel(s.year_of_study),
       s.phone ?? '',
       s.emergency_contact_name ?? '',
       s.emergency_contact_phone ?? '',

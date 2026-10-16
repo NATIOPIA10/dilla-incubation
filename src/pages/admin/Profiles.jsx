@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
+import { yearOfStudyLabel } from '../../lib/years'
 
 const TABS = [
   { key: 'submitted', label: 'Waiting for review' },
@@ -95,7 +96,7 @@ function ProfileModal({ student, onClose, onDone }) {
                 {row('Full name', student.full_name)}
                 {row('Gender', student.gender)}
                 {row('Department', student.department)}
-                {row('Year of study', student.year_of_study)}
+                {row('Year of study', yearOfStudyLabel(student.year_of_study))}
                 {row('University ID', student.university_id)}
                 {row('Phone', student.phone)}
                 {row('Emergency contact', student.emergency_contact_name)}

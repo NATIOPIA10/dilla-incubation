@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
+import { yearOfStudyLabel } from '../../lib/years'
 
 const TABS = [
   { key: 'pending', label: 'Pending', statuses: ['pending'] },
@@ -129,7 +130,7 @@ function ReviewModal({ student, onClose, onDone }) {
                 {row('Full name', student.full_name)}
                 {row('University ID', student.university_id)}
                 {row('Phone', student.phone)}
-                {row('Year of study', `${student.year_of_study}`)}
+                {row('Year of study', yearOfStudyLabel(student.year_of_study))}
                 {row('Registered', new Date(student.created_at).toLocaleString())}
                 {row('Status', student.status)}
                 {student.rejection_reason && row('Reason', student.rejection_reason)}
@@ -301,7 +302,7 @@ export default function Registrations() {
                 <td className="px-4 py-3 font-semibold">{r.full_name}</td>
                 <td className="px-4 py-3">{r.university_id}</td>
                 <td className="px-4 py-3">{r.phone}</td>
-                <td className="px-4 py-3">{r.year_of_study}</td>
+                <td className="px-4 py-3">{yearOfStudyLabel(r.year_of_study)}</td>
                 <td className="px-4 py-3">
                   {tab === 'approved' ? r.username : new Date(r.created_at).toLocaleDateString()}
                 </td>
