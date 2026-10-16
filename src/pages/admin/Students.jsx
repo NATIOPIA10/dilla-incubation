@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
+import { exportStudents } from '../../lib/exportStudents'
 
 const fullId = (s) =>
   s.id_number ? `DUIC-${s.id_number}/${String(s.id_year % 100).padStart(2, '0')}` : '—'
@@ -26,6 +27,24 @@ useEffect(() => {
   const [creds, setCreds] = useState(null)
   const [copied, setCopied] = useState(false)
   const [deactivated, setDeactivated] = useState(false)
+  const [exporting, setExporting] = useState(false)
+
+  async function doExport() {
+  setError('')
+  setExporting(true)
+  try {
+    const n = await exportStudents(
+      tab === 'active'
+        ? { statuses: ['approved', 'active'], title: 'Active students', fileLabel: 'active-students' }
+        : { statuses: ['deactivated'], title: 'Deactivated students', fileLabel: 'deactivated-students' }
+    )
+    if (n === 0) setError('There are no students to export.')
+  } catch (e) {
+    setError(`Export failed: ${e.message}`)
+  } finally {
+    setExporting(false)
+  }
+}
 
   const isActive = ['approved', 'active'].includes(student.status)
 
@@ -251,6 +270,15 @@ export default function Students() {
             {label}
           </button>
         ))}
+
+        <button
+  onClick={doExport}
+  disabled={exporting}
+  className="rounded-full border border-du-green-dark px-4 py-1 text-sm font-semibold text-du-green-dark hover:bg-green-50 disabled:opacity-60"
+>
+  {exporting ? 'Preparing...' : '⬇ Export to Excel'}
+</button>
+
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
