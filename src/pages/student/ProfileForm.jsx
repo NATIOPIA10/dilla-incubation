@@ -19,7 +19,13 @@ export default function ProfileForm({ student, onChanged }) {
   const [notice, setNotice] = useState('')
   const [busy, setBusy] = useState(false)
 
-  const set = (key) => (e) => setForm({ ...form, [key]: e.target.value })
+  const set = (key) => (e) => {
+    const value = e.target.value
+    setForm({
+      ...form,
+      [key]: ['fullName', 'emergencyName'].includes(key) ? value.replace(/\d/g, '') : value,
+    })
+  }
 
   // Preview: the newly chosen photo, or the saved one
   useEffect(() => {
@@ -51,6 +57,11 @@ export default function ProfileForm({ student, onChanged }) {
   }
 
   async function save() {
+    if (/\d/.test(form.fullName) || /\d/.test(form.emergencyName)) {
+      setError('Names must not contain numbers.')
+      return false
+    }
+
     let photoPath = student.photo_path
     if (file) {
       photoPath = `${student.auth_user_id}/photo`
@@ -100,6 +111,9 @@ export default function ProfileForm({ student, onChanged }) {
     setError('')
     setNotice('')
     if (form.fullName.trim().length < 3) return setError('Please enter your full name.')
+    if (/\d/.test(form.fullName) || /\d/.test(form.emergencyName)) {
+      return setError('Names must not contain numbers.')
+    }
     if (!form.gender) return setError('Please choose your gender.')
     if (!form.department.trim()) return setError('Please enter your department.')
     if (!form.emergencyName.trim() || form.emergencyPhone.trim().length < 9) {

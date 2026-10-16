@@ -25,7 +25,14 @@ export default function Register() {
       .then(({ data }) => setWindowInfo(data ?? null))
   }, [])
 
-  const set = (key) => (e) => setForm({ ...form, [key]: e.target.value })
+  const set = (key) => (e) => {
+    const value = e.target.value
+    const sanitized =
+      key === 'universityId' ? value.toUpperCase() :
+      key === 'fullName' ? value.replace(/\d/g, '') :
+      value
+    setForm({ ...form, [key]: sanitized })
+  }
 
   const setTitle = (i, value) => setTitles(titles.map((t, idx) => (idx === i ? value : t)))
   const addTitle = () => titles.length < MAX_TITLES && setTitles([...titles, ''])
@@ -49,6 +56,13 @@ export default function Register() {
   async function handleSubmit(e) {
     e.preventDefault()
     setError('')
+
+    if (!/^[A-Z]+-\d+\/\d{2}$/.test(form.universityId)) {
+      return setError('University ID must use the format RMNS-7783/23.')
+    }
+    if (/\d/.test(form.fullName)) {
+      return setError('Full name must not contain numbers.')
+    }
 
     const cleaned = cleanedTitles()
     if (cleaned.length < MIN_TITLES) {
@@ -135,8 +149,18 @@ export default function Register() {
         <label className="block text-sm text-gray-600 mb-1">Full name</label>
         <input className={input} value={form.fullName} onChange={set('fullName')} minLength={3} required />
 
-        <label className="block text-sm text-gray-600 mb-1">University ID number</label>
-        <input className={input} value={form.universityId} onChange={set('universityId')} minLength={3} required />
+        <label className="block text-sm text-gray-600 mb-1">University ID</label>
+        <input
+          className={input}
+          value={form.universityId}
+          onChange={set('universityId')}
+          type="text"
+          autoCapitalize="characters"
+          pattern="[A-Za-z]+-[0-9]+/[0-9]{2}"
+          placeholder="RMNS-7783/23"
+          title="Use the format RMNS-7783/23"
+          required
+        />
 
         <label className="block text-sm text-gray-600 mb-1">Phone number</label>
         <input className={input} type="tel" inputMode="tel" value={form.phone} onChange={set('phone')} minLength={9} required />
