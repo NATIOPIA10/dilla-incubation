@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
 import { STAGES, stageLabel, stateLabel } from '../../lib/stages'
+import { exportProjects } from '../../lib/exportProjects'
 
 const inputCls =
   'w-full mb-4 rounded border border-gray-300 bg-blue-50 px-3 py-2 focus:outline-none focus:border-du-green'
@@ -140,6 +141,21 @@ export default function StatusRequests() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
+  const [exporting, setExporting] = useState(false)
+  const [exportError, setExportError] = useState('')
+
+  async function doExport() {
+    setExportError('')
+    setExporting(true)
+    try {
+      const count = await exportProjects()
+      if (count === 0) setExportError('There are no project or status records to export.')
+    } catch (e) {
+      setExportError(`Export failed: ${e.message}`)
+    } finally {
+      setExporting(false)
+    }
+  }
 
   const load = useCallback(async () => {
     const [rq, rc, sb, st] = await Promise.all([
@@ -247,7 +263,17 @@ export default function StatusRequests() {
       </form>
 
       <div>
-        <h2 className="mb-3 text-lg font-bold text-du-green-dark">Requests sent</h2>
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+          <h2 className="text-lg font-bold text-du-green-dark">Requests sent</h2>
+          <button
+            onClick={doExport}
+            disabled={exporting}
+            className="rounded-full border border-du-green-dark px-4 py-1 text-sm font-semibold text-du-green-dark hover:bg-green-50 disabled:opacity-60"
+          >
+            {exporting ? 'Preparing...' : '⬇ Export projects and status'}
+          </button>
+        </div>
+        {exportError && <p className="mb-3 text-sm text-du-red">{exportError}</p>}
         {listError && <p className="mb-3 text-sm text-du-red">{listError}</p>}
         {loading && <p className="text-gray-400">Loading...</p>}
         {!loading && requests.length === 0 && <p className="text-gray-400">No requests yet.</p>}
