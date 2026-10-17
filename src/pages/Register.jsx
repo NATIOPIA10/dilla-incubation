@@ -16,6 +16,8 @@ export default function Register() {
   const [done, setDone] = useState(false)
   const [telegramUrl, setTelegramUrl] = useState('')
   const [telegramError, setTelegramError] = useState('')
+  const [telegramDetails, setTelegramDetails] = useState(null)
+  const [telegramRetrying, setTelegramRetrying] = useState(false)
 
   useEffect(() => {
     supabase
@@ -54,6 +56,37 @@ export default function Register() {
     return out
   }
   const validCount = cleanedTitles().length
+
+  async function prepareTelegramLink({ universityId, photoPath }) {
+    try {
+      const { data, error: linkError } = await supabase.functions.invoke(
+        'create-telegram-link',
+        { body: { universityId, photoPath } }
+      )
+
+      if (linkError || !data?.url) {
+        console.error('Telegram link setup failed:', linkError?.message ?? data?.error)
+        setTelegramError('Could not prepare Telegram linking. Please retry or contact the Incubation Center.')
+        return
+      }
+
+      setTelegramUrl(data.url)
+      setTelegramError('')
+    } catch (linkError) {
+      console.error(
+        'Telegram link setup failed:',
+        linkError instanceof Error ? linkError.message : String(linkError)
+      )
+      setTelegramError('Could not prepare Telegram linking. Please retry or contact the Incubation Center.')
+    }
+  }
+
+  async function retryTelegramLink() {
+    if (!telegramDetails) return
+    setTelegramRetrying(true)
+    await prepareTelegramLink(telegramDetails)
+    setTelegramRetrying(false)
+  }
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -102,16 +135,10 @@ export default function Register() {
       return setError(regError.message)
     }
 
-    const { data: linkData, error: linkError } = await supabase.functions.invoke(
-      'create-telegram-link',
-      { body: { universityId: form.universityId, photoPath: path } }
-    )
+    const linkDetails = { universityId: form.universityId, photoPath: path }
+    setTelegramDetails(linkDetails)
+    await prepareTelegramLink(linkDetails)
     setLoading(false)
-    if (linkError || !linkData?.url) {
-      setTelegramError('Could not prepare Telegram linking. Please contact the Incubation Center.')
-    } else {
-      setTelegramUrl(linkData.url)
-    }
     setDone(true)
   }
 
@@ -156,9 +183,19 @@ export default function Register() {
               Get your login on Telegram
             </a>
           ) : (
-            <p className="mb-4 text-sm text-du-red">
-              {telegramError || 'Telegram linking is unavailable. Contact the Incubation Center for your login after approval.'}
-            </p>
+            <div className="mb-4">
+              <p className="mb-2 text-sm text-du-red">
+                {telegramError || 'Telegram linking is unavailable. Contact the Incubation Center for your login after approval.'}
+              </p>
+              <button
+                type="button"
+                onClick={retryTelegramLink}
+                disabled={telegramRetrying}
+                className="rounded bg-du-blue px-4 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-60"
+              >
+                {telegramRetrying ? 'Retrying...' : 'Retry Telegram link'}
+              </button>
+            </div>
           )}
           <Link to="/" className="text-du-green-dark underline">Back to login</Link>
         </div>

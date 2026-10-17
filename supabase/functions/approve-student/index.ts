@@ -67,14 +67,18 @@ Deno.serve(async (req) => {
     const service = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 
     const authHeader = req.headers.get('Authorization') ?? ''
+    const accessToken = authHeader.match(/^Bearer\s+(.+)$/i)?.[1]
+    if (!accessToken) return json({ error: 'Not signed in' }, 401)
+
     const userClient = createClient(url, anon, {
       global: { headers: { Authorization: authHeader } },
     })
-    const { data: isAdmin, error: adminErr } = await userClient.rpc('is_admin')
-    if (adminErr || isAdmin !== true) return json({ error: 'Admins only' }, 403)
-    const { data: userData, error: userErr } = await userClient.auth.getUser()
+    const { data: userData, error: userErr } = await userClient.auth.getUser(accessToken)
     const adminId = userData.user?.id
     if (userErr || !adminId) return json({ error: 'Not signed in' }, 401)
+
+    const { data: isAdmin, error: adminErr } = await userClient.rpc('is_admin')
+    if (adminErr || isAdmin !== true) return json({ error: 'Admins only' }, 403)
 
     const { studentId } = await req.json()
     if (!studentId) return json({ error: 'studentId is required' }, 400)
