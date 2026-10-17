@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../context/AuthContext'
 import VerifyBadge from '../../components/VerifyBadge'
+import { exportStudentPortfolioAssets } from '../../lib/exportAdminRecords'
 
 const KINDS = [
   { key: 'projects', table: 'projects', label: 'Projects' },
@@ -155,6 +156,8 @@ export default function Verification() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [selected, setSelected] = useState(null)
+  const [exporting, setExporting] = useState(false)
+  const [exportError, setExportError] = useState('')
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -178,6 +181,21 @@ export default function Verification() {
     load()
   }, [load])
 
+  async function doExport() {
+    setExportError('')
+    setExporting(true)
+    try {
+      const count = await exportStudentPortfolioAssets()
+      if (count === 0) {
+        setExportError('There are no student projects, copyrights, or patents to export.')
+      }
+    } catch (e) {
+      setExportError(`Export failed: ${e.message}`)
+    } finally {
+      setExporting(false)
+    }
+  }
+
   const pill = (active, onClick, label) => (
     <button
       key={label}
@@ -197,8 +215,16 @@ export default function Verification() {
       </div>
       <div className="mb-4 flex flex-wrap gap-2">
         {FILTERS.map((f) => pill(filter === f.key, () => setFilter(f.key), f.label))}
+        <button
+          onClick={doExport}
+          disabled={exporting}
+          className="ml-auto rounded-full border border-du-green-dark px-4 py-1 text-sm font-semibold text-du-green-dark hover:bg-green-50 disabled:opacity-60"
+        >
+          {exporting ? 'Preparing...' : '⬇ Export projects, copyrights & patents'}
+        </button>
       </div>
 
+      {exportError && <p className="mb-3 text-sm text-du-red">{exportError}</p>}
       {error && <p className="mb-3 text-sm text-du-red">{error}</p>}
 
       <div className="overflow-x-auto rounded-lg bg-white shadow">

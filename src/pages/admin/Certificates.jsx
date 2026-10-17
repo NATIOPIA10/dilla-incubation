@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
+import { exportCertificates } from '../../lib/exportAdminRecords'
 
 const fullId = (s) =>
   s.id_number ? `DUIC-${s.id_number}/${String(s.id_year % 100).padStart(2, '0')}` : '—'
@@ -11,6 +12,8 @@ export default function Certificates() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [busyId, setBusyId] = useState(null)
+  const [exporting, setExporting] = useState(false)
+  const [exportError, setExportError] = useState('')
 
   const load = useCallback(async () => {
     const { data, error: e } = await supabase
@@ -27,6 +30,19 @@ export default function Certificates() {
   useEffect(() => {
     load()
   }, [load])
+
+  async function doExport() {
+    setExportError('')
+    setExporting(true)
+    try {
+      const count = await exportCertificates()
+      if (count === 0) setExportError('There are no issued certificates to export.')
+    } catch (e) {
+      setExportError(`Export failed: ${e.message}`)
+    } finally {
+      setExporting(false)
+    }
+  }
 
   async function issue(s) {
     setError('')
@@ -58,8 +74,18 @@ export default function Certificates() {
         Check their projects and rights in <b>Projects and rights</b> before issuing.
       </p>
 
+      {exportError && <p className="mb-3 text-sm text-du-red">{exportError}</p>}
       {error && <p className="mb-3 text-sm text-du-red">{error}</p>}
 
+      <div className="mb-3 flex justify-end">
+        <button
+          onClick={doExport}
+          disabled={exporting}
+          className="rounded-full border border-du-green-dark px-4 py-1 text-sm font-semibold text-du-green-dark hover:bg-green-50 disabled:opacity-60"
+        >
+          {exporting ? 'Preparing...' : '⬇ Export Certificates'}
+        </button>
+      </div>
       <div className="overflow-x-auto rounded-lg bg-white shadow">
         <table className="w-full text-left text-sm">
           <thead className="bg-du-green/10 text-du-green-dark">

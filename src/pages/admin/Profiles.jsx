@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
 import { yearOfStudyLabel } from '../../lib/years'
+import { exportApprovedProfiles } from '../../lib/exportAdminRecords'
 
 const TABS = [
   { key: 'submitted', label: 'Waiting for review' },
@@ -173,6 +174,21 @@ export default function Profiles() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [selected, setSelected] = useState(null)
+  const [exporting, setExporting] = useState(false)
+  const [exportError, setExportError] = useState('')
+
+  async function doExport() {
+    setExportError('')
+    setExporting(true)
+    try {
+      const count = await exportApprovedProfiles()
+      if (count === 0) setExportError('There are no approved profiles to export.')
+    } catch (e) {
+      setExportError(`Export failed: ${e.message}`)
+    } finally {
+      setExporting(false)
+    }
+  }
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -197,7 +213,7 @@ export default function Profiles() {
 
   return (
     <div>
-      <div className="mb-4 flex flex-wrap gap-2">
+      <div className="mb-4 flex flex-wrap items-center gap-2">
         {TABS.map((t) => (
           <button
             key={t.key}
@@ -211,8 +227,16 @@ export default function Profiles() {
             {t.label}
           </button>
         ))}
+        <button
+          onClick={doExport}
+          disabled={exporting}
+          className="ml-auto rounded-full border border-du-green-dark px-4 py-1 text-sm font-semibold text-du-green-dark hover:bg-green-50 disabled:opacity-60"
+        >
+          {exporting ? 'Preparing...' : '⬇ Export Approved Profiles'}
+        </button>
       </div>
 
+      {exportError && <p className="mb-3 text-sm text-du-red">{exportError}</p>}
       {error && <p className="mb-3 text-sm text-du-red">{error}</p>}
 
       <div className="overflow-x-auto rounded-lg bg-white shadow">
