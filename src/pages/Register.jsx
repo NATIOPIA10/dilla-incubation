@@ -197,10 +197,10 @@ export default function Register() {
         <label className="block text-sm text-gray-600 mb-1">Year of study</label>
         <select className={input} value={form.year} onChange={set('year')} required>
           <option value="">Select your year</option>
-          <option value="3">2nd year</option>
-          <option value="4">3rd year</option>
-          <option value="5">4th year</option>
-          <option value="6">5th year</option>
+          <option value="2">2nd year</option>
+          <option value="3">3rd year</option>
+          <option value="4">4th year</option>
+          <option value="5">5th year</option>
         </select>
 
         {/* Project titles */}
