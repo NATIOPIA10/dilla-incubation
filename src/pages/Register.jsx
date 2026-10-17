@@ -1,13 +1,10 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { QRCodeSVG } from 'qrcode.react'
 import { supabase } from '../lib/supabase'
-import { TELEGRAM_BOT_USERNAME } from '../lib/config'
 import IdPhotoUpload from '../components/IdPhotoUpload'
 
 const MIN_TITLES = 3
 const MAX_TITLES = 6
-const botReady = !!TELEGRAM_BOT_USERNAME && !TELEGRAM_BOT_USERNAME.startsWith('PUT_')
 
 export default function Register() {
   const [windowInfo, setWindowInfo] = useState(undefined) // undefined = loading, null = closed
@@ -17,8 +14,8 @@ export default function Register() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [done, setDone] = useState(false)
-  const [linkCode, setLinkCode] = useState(null)
-  const [copied, setCopied] = useState(false)
+  const [telegramUrl, setTelegramUrl] = useState('')
+  const [telegramError, setTelegramError] = useState('')
 
   useEffect(() => {
     supabase
@@ -30,7 +27,14 @@ export default function Register() {
       .then(({ data }) => setWindowInfo(data ?? null))
   }, [])
 
-  const set = (key) => (e) => setForm({ ...form, [key]: e.target.value })
+  const set = (key) => (e) => {
+    const value = e.target.value
+    const sanitized =
+      key === 'universityId' ? value.toUpperCase() :
+      key === 'fullName' ? value.replace(/\d/g, '') :
+      value
+    setForm({ ...form, [key]: sanitized })
+  }
 
   const setTitle = (i, value) => setTitles(titles.map((t, idx) => (idx === i ? value : t)))
   const addTitle = () => titles.length < MAX_TITLES && setTitles([...titles, ''])
@@ -55,6 +59,13 @@ export default function Register() {
     e.preventDefault()
     setError('')
 
+    if (!/^[A-Z]+-\d+\/\d{2}$/.test(form.universityId)) {
+      return setError('University ID must use the format RMNS-7783/23.')
+    }
+    if (/\d/.test(form.fullName)) {
+      return setError('Full name must not contain numbers.')
+    }
+
     const cleaned = cleanedTitles()
     if (cleaned.length < MIN_TITLES) {
       return setError(`Please enter at least ${MIN_TITLES} different project titles.`)
@@ -77,9 +88,8 @@ export default function Register() {
       return setError('Could not upload the ID photo. Please try again.')
     }
 
-    // 2. Submit the registration (the database checks all the rules).
-    //    It returns a one-time code for linking Telegram.
-    const { data: code, error: regError } = await supabase.rpc('register_student', {
+    // 2. Submit the registration (the database checks all the rules)
+    const { error: regError } = await supabase.rpc('register_student', {
       p_university_id: form.universityId,
       p_id_photo_path: path,
       p_full_name: form.fullName,
@@ -87,16 +97,22 @@ export default function Register() {
       p_year: Number(form.year),
       p_titles: cleaned,
     })
-    setLoading(false)
-    if (regError) return setError(regError.message)
-    setLinkCode(typeof code === 'string' ? code : null)
-    setDone(true)
-  }
+    if (regError) {
+      setLoading(false)
+      return setError(regError.message)
+    }
 
-  async function copyCommand() {
-    await navigator.clipboard.writeText(`/start ${linkCode}`)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
+    const { data: linkData, error: linkError } = await supabase.functions.invoke(
+      'create-telegram-link',
+      { body: { universityId: form.universityId, photoPath: path } }
+    )
+    setLoading(false)
+    if (linkError || !linkData?.url) {
+      setTelegramError('Could not prepare Telegram linking. Please contact the Incubation Center.')
+    } else {
+      setTelegramUrl(linkData.url)
+    }
+    setDone(true)
   }
 
   const input =
@@ -122,62 +138,29 @@ export default function Register() {
   }
 
   if (done) {
-    const link = linkCode && botReady ? `https://t.me/${TELEGRAM_BOT_USERNAME}?start=${linkCode}` : null
     return (
-      <div className="max-w-xl mx-auto p-6">
-        <div className="bg-white border-t-4 border-du-green rounded shadow p-8 text-center">
+      <div className="max-w-xl mx-auto p-8 text-center">
+        <div className="bg-white border-t-4 border-du-green rounded shadow p-8">
           <h1 className="text-2xl font-bold text-du-green-dark mb-2">Registration submitted ✔</h1>
-          <p className="text-gray-600">
+          <p className="text-gray-600 mb-4">
             The incubation center admin will review your details, project titles, and ID photo.
-            If approved, you will receive your login.
+            Once approved, your username and temporary password can be sent to your linked Telegram account.
           </p>
-
-          {link && (
-            <div className="mt-6 rounded-lg border-2 border-du-blue bg-blue-50 p-5">
-              <h2 className="text-lg font-bold text-du-blue">Get your login on Telegram</h2>
-              <p className="mt-1 text-sm text-gray-700">
-                Do this now. After your registration is approved, your username and password will be
-                sent to your Telegram. This link works only once, and it is shown only on this page.
-              </p>
-
-              <a
-                href={link}
-                target="_blank"
-                rel="noreferrer noopener"
-                className="mt-4 inline-block rounded bg-du-blue px-5 py-2 font-semibold text-white hover:opacity-90"
-              >
-                Open Telegram and link my account
-              </a>
-
-              <div className="mt-5 flex justify-center">
-                <div className="rounded bg-white p-2">
-                  <QRCodeSVG value={link} size={140} level="M" />
-                </div>
-              </div>
-              <p className="mt-1 text-xs text-gray-500">On a computer? Scan this code with your phone camera.</p>
-
-              <p className="mt-4 text-xs text-gray-600">
-                If the button does not work, open @{TELEGRAM_BOT_USERNAME} in Telegram and send this message:
-              </p>
-              <div className="mt-1 flex items-center justify-center gap-2">
-                <code className="break-all rounded bg-white px-2 py-1 text-xs">/start {linkCode}</code>
-                <button
-                  type="button"
-                  onClick={copyCommand}
-                  className="shrink-0 rounded border border-du-blue px-2 py-1 text-xs font-semibold text-du-blue hover:bg-white"
-                >
-                  {copied ? 'Copied ✔' : 'Copy'}
-                </button>
-              </div>
-            </div>
+          {telegramUrl ? (
+            <a
+              href={telegramUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="mb-4 inline-block rounded bg-du-blue px-5 py-2 font-semibold text-white hover:opacity-90"
+            >
+              Get your login on Telegram
+            </a>
+          ) : (
+            <p className="mb-4 text-sm text-du-red">
+              {telegramError || 'Telegram linking is unavailable. Contact the Incubation Center for your login after approval.'}
+            </p>
           )}
-
-          <p className="mt-6 text-sm text-gray-500">
-            {link
-              ? 'If you do not link Telegram, the admin will give you your login by hand.'
-              : 'The admin will give you your username and a temporary password.'}
-          </p>
-          <Link to="/" className="mt-3 inline-block text-du-green-dark underline">Back to login</Link>
+          <Link to="/" className="text-du-green-dark underline">Back to login</Link>
         </div>
       </div>
     )
@@ -189,14 +172,24 @@ export default function Register() {
         <h1 className="text-2xl font-bold text-du-green-dark">New Student Registration</h1>
         <p className="text-sm text-gray-500 mb-5">
           {windowInfo.title} · open until {new Date(windowInfo.closes_at).toLocaleDateString()}.
-          Only Dilla University students from the 2nd to the 5th year can register.
+          Only Dilla University students above second year can register.
         </p>
 
         <label className="block text-sm text-gray-600 mb-1">Full name</label>
         <input className={input} value={form.fullName} onChange={set('fullName')} minLength={3} required />
 
-        <label className="block text-sm text-gray-600 mb-1">University ID number</label>
-        <input className={input} value={form.universityId} onChange={set('universityId')} minLength={3} required />
+        <label className="block text-sm text-gray-600 mb-1">University ID</label>
+        <input
+          className={input}
+          value={form.universityId}
+          onChange={set('universityId')}
+          type="text"
+          autoCapitalize="characters"
+          pattern="[A-Za-z]+-[0-9]+/[0-9]{2}"
+          placeholder="RMNS-7783/23"
+          title="Use the format RMNS-7783/23"
+          required
+        />
 
         <label className="block text-sm text-gray-600 mb-1">Phone number</label>
         <input className={input} type="tel" inputMode="tel" value={form.phone} onChange={set('phone')} minLength={9} required />
@@ -204,10 +197,10 @@ export default function Register() {
         <label className="block text-sm text-gray-600 mb-1">Year of study</label>
         <select className={input} value={form.year} onChange={set('year')} required>
           <option value="">Select your year</option>
-          <option value="2">2nd year</option>
-          <option value="3">3rd year</option>
-          <option value="4">4th year</option>
-          <option value="5">5th year</option>
+          <option value="3">2nd year</option>
+          <option value="4">3rd year</option>
+          <option value="5">4th year</option>
+          <option value="6">5th year</option>
         </select>
 
         {/* Project titles */}

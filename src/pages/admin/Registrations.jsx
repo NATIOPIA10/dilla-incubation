@@ -29,8 +29,10 @@ function Credentials({ student, creds, onClose }) {
   return (
     <div className="p-6">
       <h3 className="text-xl font-bold text-du-green-dark mb-1">Student approved ✔</h3>
-      <p className="mb-4 text-sm text-du-red">
-        Copy these now. The password is shown only this one time. If it is lost, use Reset password.
+      <p className={`mb-4 text-sm ${creds.telegramSent ? 'text-du-green-dark' : 'text-du-red'}`}>
+        {creds.telegramSent
+          ? 'Login credentials were sent to the student’s linked Telegram chat. The password is shown here only this one time.'
+          : `Credentials were not sent through Telegram: ${creds.telegramMessage ?? 'delivery status unavailable'} Copy and securely share them with the student now. The password is shown only this one time.`}
       </p>
       <div className="rounded-lg border-2 border-du-green bg-green-50 p-4 text-sm space-y-2">
         <div><span className="text-gray-500">Name: </span><b>{student.full_name}</b></div>
