@@ -58,7 +58,7 @@ export default function Register() {
     setError('')
 
     if (!/^[A-Z]+-\d+\/\d{2}$/.test(form.universityId)) {
-      return setError('University ID must use the format RMNS-7783/23.')
+      return setError('University ID must use capital letters, a hyphen, digits, and a two-digit year (for example, ABC-7783/23).')
     }
     if (/\d/.test(form.fullName)) {
       return setError('Full name must not contain numbers.')
@@ -156,11 +156,14 @@ export default function Register() {
           onChange={set('universityId')}
           type="text"
           autoCapitalize="characters"
-          pattern="[A-Za-z]+-[0-9]+/[0-9]{2}"
-          placeholder="RMNS-7783/23"
-          title="Use the format RMNS-7783/23"
+          pattern="[A-Z]+-[0-9]+/[0-9]{2}"
+          placeholder="ABC-7783/23"
+          title="Use any capital-letter prefix, followed by a hyphen, digits, and a two-digit year, e.g. ABC-7783/23"
           required
         />
+        <p className="-mt-3 mb-4 text-xs text-gray-500">
+          The letter prefix can be anything; letters are automatically capitalized.
+        </p>
 
         <label className="block text-sm text-gray-600 mb-1">Phone number</label>
         <input className={input} type="tel" inputMode="tel" value={form.phone} onChange={set('phone')} minLength={9} required />
