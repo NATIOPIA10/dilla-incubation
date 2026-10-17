@@ -43,7 +43,7 @@ function StudentModal({ student, onClose, onChanged }) {
     setError('')
     setBusy(true)
     const { data, error: e } = await supabase.functions.invoke('reset-password', {
-      body: { studentId: student.id },
+      body: { studentId: student.id, siteUrl: window.location.origin },
     })
     setBusy(false)
     if (e) {
@@ -153,6 +153,21 @@ function StudentModal({ student, onClose, onChanged }) {
               <div><span className="text-gray-500">Username: </span><b className="font-mono text-base">{student.username}</b></div>
               <div><span className="text-gray-500">New temporary password: </span><b className="font-mono text-base">{creds.tempPassword}</b></div>
             </div>
+                        {creds.telegram === 'sent' && (
+              <p className="mt-3 rounded bg-green-100 px-3 py-2 text-sm font-semibold text-du-green-dark">
+                ✔ The new password was also sent to the student on Telegram.
+              </p>
+            )}
+            {creds.telegram === 'failed' && (
+              <p className="mt-3 rounded bg-red-100 px-3 py-2 text-sm font-semibold text-du-red">
+                Telegram sending failed. Give the student the password by hand.
+              </p>
+            )}
+            {creds.telegram === 'not_linked' && (
+              <p className="mt-3 rounded bg-yellow-100 px-3 py-2 text-sm font-semibold text-yellow-800">
+                The student has not linked Telegram. Give the student the password by hand.
+              </p>
+            )}
             <div className="mt-4 flex gap-3">
               <button onClick={copy}
                 className="rounded bg-du-green-dark px-4 py-2 font-semibold text-white hover:bg-du-green">

@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
-import { yearOfStudyLabel } from '../../lib/years'
 
 const TABS = [
   { key: 'pending', label: 'Pending', statuses: ['pending'] },
@@ -8,6 +7,34 @@ const TABS = [
   { key: 'rejected', label: 'Rejected', statuses: ['rejected'] },
   { key: 'approved', label: 'Approved', statuses: ['approved', 'active'] },
 ]
+
+const YEARS = { 2: '2nd year', 3: '3rd year', 4: '4th year', 5: '5th year' }
+const yearText = (n) => YEARS[n] ?? String(n)
+
+function TelegramStatus({ status }) {
+  if (status === 'sent') {
+    return (
+      <p className="mt-3 rounded bg-green-100 px-3 py-2 text-sm font-semibold text-du-green-dark">
+        ✔ The login was also sent to the student on Telegram.
+      </p>
+    )
+  }
+  if (status === 'failed') {
+    return (
+      <p className="mt-3 rounded bg-red-100 px-3 py-2 text-sm font-semibold text-du-red">
+        Telegram sending failed. Give the student the login by hand.
+      </p>
+    )
+  }
+  if (status === 'not_linked') {
+    return (
+      <p className="mt-3 rounded bg-yellow-100 px-3 py-2 text-sm font-semibold text-yellow-800">
+        The student has not linked Telegram. Give the student the login by hand.
+      </p>
+    )
+  }
+  return null
+}
 
 function Credentials({ student, creds, onClose }) {
   const [copied, setCopied] = useState(false)
@@ -29,16 +56,15 @@ function Credentials({ student, creds, onClose }) {
   return (
     <div className="p-6">
       <h3 className="text-xl font-bold text-du-green-dark mb-1">Student approved ✔</h3>
-      <p className={`mb-4 text-sm ${creds.telegramSent ? 'text-du-green-dark' : 'text-du-red'}`}>
-        {creds.telegramSent
-          ? 'Login credentials were sent to the student’s linked Telegram chat. The password is shown here only this one time.'
-          : `Credentials were not sent through Telegram: ${creds.telegramMessage ?? 'delivery status unavailable'} Copy and securely share them with the student now. The password is shown only this one time.`}
+      <p className="mb-4 text-sm text-du-red">
+        Copy these now. The password is shown only this one time. If it is lost, use Reset password.
       </p>
       <div className="rounded-lg border-2 border-du-green bg-green-50 p-4 text-sm space-y-2">
         <div><span className="text-gray-500">Name: </span><b>{student.full_name}</b></div>
         <div><span className="text-gray-500">Username: </span><b className="font-mono text-base">{creds.username}</b></div>
         <div><span className="text-gray-500">Temporary password: </span><b className="font-mono text-base">{creds.tempPassword}</b></div>
       </div>
+      <TelegramStatus status={creds.telegram} />
       <div className="mt-4 flex gap-3">
         <button onClick={copy} className="rounded bg-du-green-dark px-4 py-2 font-semibold text-white hover:bg-du-green">
           {copied ? 'Copied ✔' : 'Copy login details'}
@@ -76,7 +102,7 @@ function ReviewModal({ student, onClose, onDone }) {
     setError('')
     setBusy(true)
     const { data, error: e } = await supabase.functions.invoke('approve-student', {
-      body: { studentId: student.id },
+      body: { studentId: student.id, siteUrl: window.location.origin },
     })
     setBusy(false)
     if (e) {
@@ -132,22 +158,24 @@ function ReviewModal({ student, onClose, onDone }) {
                 {row('Full name', student.full_name)}
                 {row('University ID', student.university_id)}
                 {row('Phone', student.phone)}
-                {row('Year of study', yearOfStudyLabel(student.year_of_study))}
+                {row('Year of study', yearText(student.year_of_study))}
                 {row('Registered', new Date(student.created_at).toLocaleString())}
                 {row('Status', student.status)}
+                {reviewable && row('Telegram', student.telegramLinked ? '✔ Linked' : 'Not linked')}
                 {student.rejection_reason && row('Reason', student.rejection_reason)}
+
                 <div className="mt-3">
-  <p className="mb-1 text-sm text-gray-500">Proposed project titles</p>
-  {student.proposed_titles?.length ? (
-    <ol className="list-decimal space-y-1 pl-5 text-sm font-semibold">
-      {student.proposed_titles.map((t, i) => (
-        <li key={i}>{t}</li>
-      ))}
-    </ol>
-  ) : (
-    <p className="text-sm text-gray-400">None (registered before this rule)</p>
-  )}
-</div>
+                  <p className="mb-1 text-sm text-gray-500">Proposed project titles</p>
+                  {student.proposed_titles?.length ? (
+                    <ol className="list-decimal space-y-1 pl-5 text-sm font-semibold">
+                      {student.proposed_titles.map((t, i) => (
+                        <li key={i}>{t}</li>
+                      ))}
+                    </ol>
+                  ) : (
+                    <p className="text-sm text-gray-400">None (registered before this rule)</p>
+                  )}
+                </div>
               </div>
 
               <div>
@@ -249,11 +277,20 @@ export default function Registrations() {
     const statuses = TABS.find((t) => t.key === tab).statuses
     const { data, error: e } = await supabase
       .from('students')
-      .select('id, full_name, university_id, phone, year_of_study, status, rejection_reason, university_id_photo_path, created_at, username, proposed_titles')      .in('status', statuses)
+      .select(
+        'id, full_name, university_id, phone, year_of_study, status, rejection_reason, ' +
+        'university_id_photo_path, created_at, username, proposed_titles, telegram_links(linked_at)'
+      )
+      .in('status', statuses)
       .order('created_at', { ascending: true })
     setLoading(false)
     if (e) return setError(e.message)
-    setRows(data)
+    setRows(
+      data.map((r) => {
+        const link = Array.isArray(r.telegram_links) ? r.telegram_links[0] : r.telegram_links
+        return { ...r, telegramLinked: !!link?.linked_at }
+      })
+    )
   }, [tab])
 
   useEffect(() => {
@@ -288,23 +325,31 @@ export default function Registrations() {
               <th className="px-4 py-3">University ID</th>
               <th className="px-4 py-3">Phone</th>
               <th className="px-4 py-3">Year</th>
+              <th className="px-4 py-3">Telegram</th>
               <th className="px-4 py-3">{tab === 'approved' ? 'Username' : 'Registered'}</th>
               <th className="px-4 py-3"></th>
             </tr>
           </thead>
           <tbody>
             {loading && (
-              <tr><td colSpan={6} className="px-4 py-8 text-center text-gray-400">Loading...</td></tr>
+              <tr><td colSpan={7} className="px-4 py-8 text-center text-gray-400">Loading...</td></tr>
             )}
             {!loading && rows.length === 0 && (
-              <tr><td colSpan={6} className="px-4 py-8 text-center text-gray-400">No registrations here.</td></tr>
+              <tr><td colSpan={7} className="px-4 py-8 text-center text-gray-400">No registrations here.</td></tr>
             )}
             {rows.map((r) => (
               <tr key={r.id} className="border-t border-gray-100 hover:bg-gray-50">
                 <td className="px-4 py-3 font-semibold">{r.full_name}</td>
                 <td className="px-4 py-3">{r.university_id}</td>
                 <td className="px-4 py-3">{r.phone}</td>
-                <td className="px-4 py-3">{yearOfStudyLabel(r.year_of_study)}</td>
+                <td className="px-4 py-3">{yearText(r.year_of_study)}</td>
+                <td className="px-4 py-3">
+                  {r.telegramLinked ? (
+                    <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-semibold text-du-green-dark">Linked ✔</span>
+                  ) : (
+                    <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-500">Not linked</span>
+                  )}
+                </td>
                 <td className="px-4 py-3">
                   {tab === 'approved' ? r.username : new Date(r.created_at).toLocaleDateString()}
                 </td>
