@@ -1,8 +1,8 @@
 const YEAR_LABELS = {
-  3: '2nd year',
-  4: '3rd year',
-  5: '4th year',
-  6: '5th year',
+  2: '2nd year',
+  3: '3rd year',
+  4: '4th year',
+  5: '5th year',
 }
 
 export const yearOfStudyLabel = (year) =>
