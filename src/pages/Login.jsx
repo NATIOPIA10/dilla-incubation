@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import ContactBox from '../components/ContactBox'
 
 const cards = [
   { icon: '📝', title: 'New Student Registration', text: 'Students from the 2nd to the 5th year can register when registration is open.', to: '/register' },
@@ -113,11 +114,11 @@ export default function Login() {
           >
             {loading ? 'Logging in...' : 'Login'}
           </button>
-          <p className="mt-3 text-sm text-gray-500">
-            Forgot your password? Contact the incubation center admin to receive a temporary password.
-            You’ll be asked to change it after logging in.
+                    <p className="mt-3 text-sm text-gray-500">
+            Forgot your password? Contact the Incubation Center (details below).
           </p>
         </form>
+                <ContactBox className="mt-4 w-full max-w-sm" />
       </section>
     </div>
   )

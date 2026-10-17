@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
+import ContactBox from '../../components/ContactBox'
 
 function Tile({ icon, title, onClick, children }) {
   return (
@@ -107,6 +108,7 @@ export default function Overview({ student, incubationId, go }) {
           {d.rights === 1 ? 'record' : 'records'}
         </Tile>
       </div>
+            <ContactBox className="mt-6" />
     </div>
   )
 }
