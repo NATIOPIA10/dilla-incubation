@@ -57,8 +57,8 @@ export default function Dashboard() {
         if (!cancelled) setError(failed.error.message)
         return
       }
-      const [pend, profWait, projPend, rightsPend, students, rooms, assigns, latest, deact, upcoming, tg, openReq, pool] = res
-
+      const [pend, profWait, projPend, rightsPend, students, rooms, assigns, latest, deact, upcoming, tg, openReq, pool, support] = res
+            
       const activeStudents = students.data
       const base = activeStudents.filter((s) => s.status === 'active')
       const baseIds = new Set(base.map((s) => s.id))
