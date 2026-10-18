@@ -32,6 +32,22 @@ function ReviewModal({ kind, item, onClose, onDone }) {
   const [error, setError] = useState('')
   const table = KINDS.find((k) => k.key === kind).table
   const pending = item.verification_status === 'pending'
+    const [hidden, setHidden] = useState(!!item.hidden)
+  const [hideBusy, setHideBusy] = useState(false)
+
+  async function toggleHidden() {
+    setHideBusy(true)
+    setError('')
+    const next = !hidden
+    const { data, error: err } = await supabase
+      .from('projects')
+      .update({ hidden: next })
+      .eq('id', item.id)
+      .select('id')
+    setHideBusy(false)
+    if (err || !data?.length) return setError(err?.message ?? 'Could not save the change.')
+    setHidden(next)
+  }
 
   async function decide(status) {
     setError('')
@@ -102,7 +118,23 @@ function ReviewModal({ kind, item, onClose, onDone }) {
               </div>
             </>
           )}
-
+                  {kind === 'projects' && item.verification_status === 'verified' && (
+            <div className="mt-3 rounded border border-gray-200 bg-gray-50 p-3 text-sm">
+              <p className="mb-2">
+                {hidden
+                  ? 'This project is hidden from the showcase.'
+                  : 'This project is shown in the showcase to all members.'}
+              </p>
+              <button
+                disabled={hideBusy}
+                onClick={toggleHidden}
+                className="rounded border border-du-blue px-3 py-1 font-semibold text-du-blue hover:bg-blue-50 disabled:opacity-50"
+              >
+                {hidden ? 'Show in showcase' : 'Hide from showcase'}
+              </button>
+              {error && <p className="mt-2 text-du-red">{error}</p>}
+            </div>
+          )}
           {item.rejection_reason && row('Rejection reason', item.rejection_reason)}
 
           {pending && (

@@ -64,8 +64,11 @@ function ProjectForm({ student, project, onSaved, onCancel }) {
 
   return (
     <form onSubmit={save} className="rounded-lg border-t-4 border-du-green bg-white p-4 shadow">
-      <h3 className="mb-3 font-bold text-du-green-dark">{project ? 'Edit project' : 'Add a project'}</h3>
-
+<h3 className="mb-1 font-bold text-du-green-dark">{project ? 'Edit project' : 'Add a project'}</h3>
+<p className="mb-3 text-xs text-gray-500">
+  After the admin verifies a project, it is shown to all members of the Incubation Center with your name and
+  department. Your code link stays private.
+</p>
       <label className="mb-1 block text-sm text-gray-600">Project title</label>
       <input className={inputCls} value={f.title} onChange={set('title')} maxLength={150} required />
 
@@ -75,7 +78,7 @@ function ProjectForm({ student, project, onSaved, onCancel }) {
       <label className="mb-1 block text-sm text-gray-600">Technologies used</label>
       <input className={inputCls} value={f.tech} onChange={set('tech')} placeholder="e.g. React, Supabase" />
 
-      <label className="mb-1 block text-sm text-gray-600">Code link (optional)</label>
+      <label className="mb-1 block text-sm text-gray-600">Code link (optional, never shown to other members)</label>
       <input className={inputCls} value={f.repo} onChange={set('repo')} placeholder="https://github.com/..." />
 
       <label className="mb-3 flex items-center gap-2 text-sm text-gray-700">

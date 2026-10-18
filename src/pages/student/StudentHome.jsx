@@ -10,6 +10,7 @@ import Announcements from './Announcements'
 import ProjectStatus from './ProjectStatus'
 import ProjectTitles from './ProjectTitles'
 import Portfolio from './Portfolio'
+import Showcase from './Showcase'
 
 const TABS = [
   { key: 'home', label: 'Home', icon: '🏠' },
@@ -18,6 +19,7 @@ const TABS = [
   { key: 'status', label: 'Status', icon: '📋' },
   { key: 'work', label: 'My work', icon: '🚀' },
   { key: 'password', label: 'Password', icon: '🔐' },
+  { key: 'showcase', label: 'Showcase', icon: '🌟' },
 ]
 
 function Card({ title, children, tone = 'green' }) {
@@ -95,7 +97,7 @@ function Dashboard({ student }) {
         )}
 
         {tab === 'news' && <Announcements />}
-
+        {tab === 'showcase' && <Showcase />}
         {tab === 'status' && (
           <div>
             <h2 className="mb-4 text-xl font-bold text-du-green-dark">📋 Project status</h2>
