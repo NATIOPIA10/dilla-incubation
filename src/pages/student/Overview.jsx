@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
 import ContactBox from '../../components/ContactBox'
+import TelegramLink from './TelegramLink'
 
 function Tile({ icon, title, onClick, children }) {
   return (
@@ -58,7 +59,9 @@ export default function Overview({ student, incubationId, go }) {
         Incubation ID:{' '}
         <span className="font-mono font-bold text-du-maroon">{incubationId ?? '...'}</span>
       </p>
-
+       
+             <TelegramLink />
+             
       {d.waiting > 0 && (
         <button
           onClick={() => go('status')}
