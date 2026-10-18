@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import IdPhotoUpload from '../components/IdPhotoUpload'
+import { nationalMobile } from '../lib/phone'
 
 const MIN_TITLES = 3
 const MAX_TITLES = 6
@@ -106,6 +107,10 @@ export default function Register() {
     if (cleaned.some((t) => t.length < 3 || t.length > 150)) {
       return setError('Each project title must be between 3 and 150 characters.')
     }
+        if (!nationalMobile(form.phone)) {
+      return setError('Please enter a valid mobile number, for example 0911 234 567 or 0711 234 567.')
+    }
+    
     if (!file) return setError('Please upload a photo of your university ID.')
 
     setLoading(true)

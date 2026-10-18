@@ -14,6 +14,50 @@ function when(iso) {
     : d.toLocaleDateString()
 }
 
+function ResetCard({ m, onReset, onDismiss, busy }) {
+  const open = m.status === 'open'
+  const badge =
+    m.status === 'done'
+      ? ['Done', 'bg-green-100 text-du-green-dark']
+      : m.status === 'dismissed'
+        ? ['Closed', 'bg-gray-200 text-gray-600']
+        : ['Waiting', 'bg-yellow-200 text-yellow-900']
+  return (
+    <div className="mx-auto w-full max-w-md rounded-lg border-2 border-yellow-400 bg-yellow-50 p-3 text-sm">
+      <div className="flex items-center justify-between gap-2">
+        <span className="font-bold text-yellow-900">🔑 Password reset request</span>
+        <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${badge[1]}`}>{badge[0]}</span>
+      </div>
+      <p className="mt-1">
+        {m.phone_verified ? (
+          <b className="text-du-green-dark">✔ Phone number verified: it matches the registration.</b>
+        ) : (
+          <b className="text-du-red">✖ The shared phone number does NOT match the registration.</b>
+        )}
+      </p>
+      <p className="mt-1 text-xs text-gray-500">{new Date(m.created_at).toLocaleString()}</p>
+      {open && (
+        <div className="mt-2 flex flex-wrap gap-2">
+          <button
+            disabled={busy}
+            onClick={() => onReset(m)}
+            className="rounded bg-du-green-dark px-3 py-1 font-semibold text-white hover:bg-du-green disabled:opacity-50"
+          >
+            Reset and send
+          </button>
+          <button
+            disabled={busy}
+            onClick={() => onDismiss(m)}
+            className="rounded border border-gray-400 px-3 py-1 font-semibold text-gray-600 hover:bg-white disabled:opacity-50"
+          >
+            Close without reset
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function Support() {
   const [params, setParams] = useSearchParams()
   const selected = params.get('student')
@@ -26,7 +70,10 @@ export default function Support() {
   const [messages, setMessages] = useState([])
   const [reply, setReply] = useState('')
   const [busy, setBusy] = useState(false)
+  const [acting, setActing] = useState(false)
   const [sendError, setSendError] = useState('')
+  const [note, setNote] = useState(null) // { tone, text, password }
+  const [copied, setCopied] = useState(false)
   const endRef = useRef(null)
 
   const loadList = useCallback(async () => {
@@ -94,6 +141,7 @@ export default function Support() {
   useEffect(() => {
     setMessages([])
     setSendError('')
+    setNote(null)
     if (selected) loadThread(selected)
   }, [selected, loadThread])
 
@@ -137,6 +185,63 @@ export default function Support() {
   }
 
   const student = selected ? students[selected] : null
+
+  async function resetAndSend(m) {
+    setNote(null)
+    const verdict = m.phone_verified
+      ? 'The phone number was verified.'
+      : 'WARNING: the phone number does NOT match the registration.'
+    if (!window.confirm(
+      `Reset the password of ${student?.full_name ?? 'this student'}?\n\n${verdict}\n\nConfirm that you have checked who is asking.`
+    )) return
+
+    setActing(true)
+    const { data, error: err } = await supabase.functions.invoke('reset-password', {
+      body: { studentId: selected, requestId: m.id, hidePassword: true, siteUrl: window.location.origin },
+    })
+    setActing(false)
+
+    if (err) {
+      let msg = err.message
+      try {
+        const b = await err.context.json()
+        if (b?.error) msg = b.error
+      } catch { /* keep the generic message */ }
+      return setNote({ tone: 'bad', text: msg })
+    }
+
+    if (data?.telegram === 'sent') {
+      setNote({ tone: 'ok', text: '✔ The new temporary password was sent to the student on Telegram.' })
+    } else {
+      setNote({
+        tone: 'warn',
+        text:
+          data?.telegram === 'failed'
+            ? 'Telegram sending failed. The password was reset. Give the student this password by hand:'
+            : 'The student has not linked Telegram. The password was reset. Give the student this password by hand:',
+        password: data?.tempPassword,
+      })
+    }
+    loadThread(selected)
+    loadList()
+  }
+
+  async function dismiss(m) {
+    if (!window.confirm('Close this request without resetting the password? You can still write to the student.')) return
+    setActing(true)
+    const { error: err } = await supabase.rpc('dismiss_reset_request', { p_message: m.id })
+    setActing(false)
+    if (err) return setNote({ tone: 'bad', text: err.message })
+    loadThread(selected)
+    loadList()
+  }
+
+  async function copyPassword() {
+    await navigator.clipboard.writeText(note.password)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
   const open = (id) => setParams(id ? { student: id } : {})
 
   return (
@@ -176,11 +281,18 @@ export default function Support() {
                     <span className="truncate text-sm text-gray-500">
                       {p ? `${p.direction === 'out' ? 'You: ' : ''}${p.body}` : ''}
                     </span>
-                    {Number(t.unread) > 0 && (
-                      <span className="shrink-0 rounded-full bg-du-red px-2 py-0.5 text-xs font-bold text-white">
-                        {t.unread}
-                      </span>
-                    )}
+                    <span className="flex shrink-0 gap-1">
+                      {Number(t.open_resets) > 0 && (
+                        <span className="rounded-full bg-yellow-200 px-2 py-0.5 text-xs font-bold text-yellow-900">
+                          Reset
+                        </span>
+                      )}
+                      {Number(t.unread) > 0 && (
+                        <span className="rounded-full bg-du-red px-2 py-0.5 text-xs font-bold text-white">
+                          {t.unread}
+                        </span>
+                      )}
+                    </span>
                   </div>
                 </button>
               )
@@ -215,23 +327,61 @@ export default function Support() {
                 {messages.length === 0 && (
                   <p className="text-sm text-gray-400">No messages yet. You can write the first one below.</p>
                 )}
-                {messages.map((m) => (
-                  <div key={m.id} className={`flex ${m.direction === 'out' ? 'justify-end' : 'justify-start'}`}>
-                    <div
-                      className={`max-w-[80%] whitespace-pre-wrap rounded-lg px-3 py-2 text-sm ${
-                        m.direction === 'out' ? 'bg-du-green text-white' : 'bg-gray-100 text-gray-800'
-                      }`}
-                    >
-                      {m.body}
-                      <div className={`mt-1 text-[10px] ${m.direction === 'out' ? 'text-white/70' : 'text-gray-400'}`}>
-                        {new Date(m.created_at).toLocaleString()}
-                        {m.delivery === 'failed' && ' · Not delivered'}
+                {messages.map((m) => {
+                  if (m.kind === 'system') {
+                    return (
+                      <div key={m.id} className="text-center text-xs text-gray-400">
+                        {m.body} · {new Date(m.created_at).toLocaleString()}
+                      </div>
+                    )
+                  }
+                  if (m.kind === 'reset_request') {
+                    return <ResetCard key={m.id} m={m} onReset={resetAndSend} onDismiss={dismiss} busy={acting} />
+                  }
+                  return (
+                    <div key={m.id} className={`flex ${m.direction === 'out' ? 'justify-end' : 'justify-start'}`}>
+                      <div
+                        className={`max-w-[80%] whitespace-pre-wrap rounded-lg px-3 py-2 text-sm ${
+                          m.direction === 'out' ? 'bg-du-green text-white' : 'bg-gray-100 text-gray-800'
+                        }`}
+                      >
+                        {m.body}
+                        <div className={`mt-1 text-[10px] ${m.direction === 'out' ? 'text-white/70' : 'text-gray-400'}`}>
+                          {new Date(m.created_at).toLocaleString()}
+                          {m.delivery === 'failed' && ' · Not delivered'}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  )
+                })}
                 <div ref={endRef} />
               </div>
+
+              {note && (
+                <div
+                  className={`mx-3 mb-2 rounded border p-3 text-sm ${
+                    note.tone === 'ok'
+                      ? 'border-du-green bg-green-50 text-du-green-dark'
+                      : note.tone === 'warn'
+                        ? 'border-yellow-400 bg-yellow-50 text-yellow-900'
+                        : 'border-du-red bg-red-50 text-du-red'
+                  }`}
+                >
+                  <p className="font-semibold">{note.text}</p>
+                  {note.password && (
+                    <div className="mt-2 flex items-center gap-2">
+                      <code className="rounded bg-white px-2 py-1 text-base font-bold">{note.password}</code>
+                      <button
+                        type="button"
+                        onClick={copyPassword}
+                        className="rounded border border-yellow-600 px-2 py-1 text-xs font-semibold hover:bg-white"
+                      >
+                        {copied ? 'Copied ✔' : 'Copy'}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
 
               <form onSubmit={send} className="border-t border-gray-100 p-3">
                 {sendError && <p className="mb-2 text-sm text-du-red">{sendError}</p>}
