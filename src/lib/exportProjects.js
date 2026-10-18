@@ -32,7 +32,7 @@ export async function exportProjects() {
     supabase
       .from('students')
       .select(
-        'id, full_name, university_id, department, year_of_study, phone, username, status, proposed_titles, project_titles(title, created_at)'
+        'id, full_name, department, year_of_study, status, proposed_titles, project_titles(title, created_at)'
       )
       .order('full_name'),
     supabase.from('status_requests').select('id, title, created_at, deadline'),
@@ -61,23 +61,16 @@ export async function exportProjects() {
 
   const projectRows = students.flatMap((student) => {
     const titles = [
-      ...(student.proposed_titles ?? []).map((title) => ({ title, source: 'Registration' })),
-      ...(student.project_titles ?? []).map((project) => ({
-        title: project.title,
-        source: `Added ${dateTime(project.created_at)}`,
-      })),
+      ...(student.proposed_titles ?? []),
+      ...(student.project_titles ?? []).map((project) => project.title),
     ]
 
-    return titles.map((project) => [
+    return titles.map((title) => [
       student.full_name,
-      student.university_id,
-      student.username,
       student.department,
       yearOfStudyLabel(student.year_of_study),
-      student.phone,
       student.status,
-      project.title,
-      project.source,
+      title,
     ])
   })
 
@@ -92,10 +85,7 @@ export async function exportProjects() {
       dateTime(request.created_at),
       dateTime(request.deadline),
       student.full_name,
-      student.university_id,
-      student.username,
       student.department,
-      student.phone,
       submission ? stageLabel(submission.stage) : '',
       submission ? stateLabel(submission.state) : '',
       submission?.note ?? (submission ? '' : 'Not submitted'),
@@ -115,22 +105,21 @@ export async function exportProjects() {
     workbook,
     'Projects',
     [
-      'Owner name', 'University ID', 'Username', 'Department', 'Year of study',
-      'Phone', 'Account status', 'Project title', 'Title source',
+      'Owner name', 'Department', 'Year of study', 'Account status', 'Project title',
     ],
     projectRows,
-    [28, 22, 20, 24, 16, 18, 16, 48, 24]
+    [28, 24, 16, 16, 48]
   )
   addSheet(
     workbook,
     'Project status',
     [
-      'Request', 'Requested on', 'Deadline', 'Owner name', 'University ID',
-      'Username', 'Department', 'Phone', 'Stage', 'Stage status', 'Note',
+      'Request', 'Requested on', 'Deadline', 'Owner name', 'Department',
+      'Stage', 'Stage status', 'Note',
       'Project link', 'Submitted / updated',
     ],
     statusRows,
-    [32, 22, 22, 28, 22, 20, 24, 18, 28, 18, 42, 42, 22]
+    [32, 22, 22, 28, 24, 28, 18, 42, 42, 22]
   )
 
   const buffer = await workbook.xlsx.writeBuffer()
