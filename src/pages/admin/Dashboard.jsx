@@ -48,7 +48,8 @@ export default function Dashboard() {
           .gte('event_date', nowIso).order('event_date').limit(5),
         supabase.from('events').select('id', head).is('telegram_sent_at', null).not('telegram_error', 'is', null),
         supabase.from('status_requests').select('id', head).or(`deadline.is.null,deadline.gt.${nowIso}`),
-        supabase.rpc('id_pool_remaining'),
+                supabase.rpc('id_pool_remaining'),
+        supabase.from('support_messages').select('id', head).eq('direction', 'in').is('read_at', null),
       ])
 
       const failed = res.find((r) => r.error)
@@ -96,6 +97,7 @@ export default function Dashboard() {
         baseCount: base.length,
         upcoming: upcoming.data,
         pool: pool.data,
+                unreadSupport: support.count ?? 0,
       })
     }
 
@@ -109,6 +111,7 @@ export default function Dashboard() {
   if (!data) return <p className="text-gray-400">Loading...</p>
 
   const attention = [
+    { label: 'unread support messages', n: data.unreadSupport, to: '/admin/support' },
     { label: 'registrations waiting for review', n: data.pendingRegistrations, to: '/admin/registrations' },
     { label: 'profiles waiting for review', n: data.profilesWaiting, to: '/admin/profiles' },
     { label: 'projects or rights waiting for verification', n: data.verifyWaiting, to: '/admin/verification' },

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
 import { exportStudents } from '../../lib/exportStudents'
+import TelegramAdminBox from './TelegramAdminBox'
 
 const fullId = (s) =>
   s.id_number ? `DUIC-${s.id_number}/${String(s.id_year % 100).padStart(2, '0')}` : '—'
@@ -230,7 +231,8 @@ function StudentModal({ student, onClose, onChanged }) {
                 </ul>
               </div>
             )}
-
+                           <TelegramAdminBox studentId={student.id} />
+                           
             {isActive && (
               <div className="mt-5 space-y-5">
                 <div>
