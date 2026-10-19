@@ -12,6 +12,7 @@ const tabs = [
   { to: '/admin/certificates', label: 'Certificates' },
   { to: '/admin/windows', label: 'Registration dates' },
   { to: '/admin/support', label: 'Support' },
+  { to: '/admin/photos', label: 'Photo changes' },
 ]
 
 export default function AdminLayout() {
