@@ -65,7 +65,7 @@ export async function exportStudents({ statuses, title, fileLabel }) {
     const later = [...(s.project_titles ?? [])]
       .sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
       .map((x) => x.title)
-    const titles = [...(s.proposed_titles ?? []), ...later]
+        const titles = later.length ? later : (s.proposed_titles ?? [])
 
     const values = [
       idx + 1,

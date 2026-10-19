@@ -194,11 +194,11 @@ function StudentModal({ student, onClose, onChanged }) {
 
             <div className="mt-3">
               <p className="mb-1 text-sm text-gray-500">Project titles</p>
-              {(student.proposed_titles?.length ?? 0) + titles.length === 0 ? (
+              {titles.length === 0 && (student.proposed_titles?.length ?? 0) === 0 ? (
                 <p className="text-sm text-gray-400">None.</p>
               ) : (
                 <ul className="list-disc space-y-1 pl-5 text-sm font-semibold">
-                  {(student.proposed_titles ?? []).map((t, i) => (
+                  {(titles.length === 0 ? (student.proposed_titles ?? []) : []).map((t, i) => (
                     <li key={`r${i}`}>
                       {t} <span className="text-xs font-normal text-gray-400">(registration)</span>
                     </li>

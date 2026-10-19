@@ -4,13 +4,13 @@ import { supabase } from '../lib/supabase'
 import IdPhotoUpload from '../components/IdPhotoUpload'
 import { nationalMobile } from '../lib/phone'
 
-const MIN_TITLES = 3
+const MIN_TITLES = 2
 const MAX_TITLES = 6
 
 export default function Register() {
   const [windowInfo, setWindowInfo] = useState(undefined) // undefined = loading, null = closed
   const [form, setForm] = useState({ fullName: '', universityId: '', phone: '', year: '' })
-  const [titles, setTitles] = useState(['', '', ''])
+  const [titles, setTitles] = useState(['', ''])
   const [file, setFile] = useState(null)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)

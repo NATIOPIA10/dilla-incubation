@@ -43,7 +43,7 @@ export default function Overview({ student, incubationId, go }) {
         room: room.data?.rooms ?? null,
         event: ev.data ?? null,
         waiting,
-        titles: (student.proposed_titles?.length ?? 0) + (tt.count ?? 0),
+                titles: tt.count ?? 0,
         projects: pr.count ?? 0,
         rights: ip.count ?? 0,
       })
