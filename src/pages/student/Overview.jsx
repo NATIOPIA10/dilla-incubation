@@ -110,6 +110,10 @@ export default function Overview({ student, incubationId, go }) {
           {d.projects} {d.projects === 1 ? 'project' : 'projects'} · {d.rights} rights{' '}
           {d.rights === 1 ? 'record' : 'records'}
         </Tile>
+
+        <Tile icon="⚙️" title="My account" onClick={() => go('account')}>
+          Change your profile photo or ID photo
+        </Tile>
       </div>
             <ContactBox className="mt-6" />
     </div>

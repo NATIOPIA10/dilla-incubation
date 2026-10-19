@@ -11,6 +11,7 @@ import ProjectStatus from './ProjectStatus'
 import ProjectTitles from './ProjectTitles'
 import Portfolio from './Portfolio'
 import Showcase from './Showcase'
+import Account from './Account'
 
 const TABS = [
   { key: 'home', label: 'Home', icon: '🏠' },
@@ -39,7 +40,7 @@ function Dashboard({ student }) {
   const [work, setWork] = useState('titles')
 
   const requested = params.get('tab')
-  const tab = TABS.some((t) => t.key === requested) ? requested : 'home'
+    const tab = TABS.some((t) => t.key === requested) || requested === 'account' ? requested : 'home'
 
   const go = (key, sub) => {
     if (sub) setWork(sub)
@@ -98,6 +99,7 @@ function Dashboard({ student }) {
 
         {tab === 'news' && <Announcements />}
         {tab === 'showcase' && <Showcase />}
+        {tab === 'account' && <Account student={student} go={go} />}
         {tab === 'status' && (
           <div>
             <h2 className="mb-4 text-xl font-bold text-du-green-dark">📋 Project status</h2>
@@ -146,6 +148,36 @@ function ProjectStatusWrapper({ student }) {
     <div className="-mt-8">
       <ProjectStatus student={student} />
     </div>
+  )
+}
+
+function UnderReview({ onChanged }) {
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+
+  async function editAgain() {
+    if (!window.confirm('Cancel your submission and edit your profile again? You will need to submit it again for review.')) return
+    setError('')
+    setBusy(true)
+    const { error: e } = await supabase.rpc('withdraw_profile')
+    setBusy(false)
+    if (e) return setError(e.message)
+    onChanged()
+  }
+
+  return (
+    <Card title="Profile under review">
+      <p>Thank you. The admin is reviewing your profile. Your ID card will be released once it is approved.</p>
+      <p className="mt-4 text-sm text-gray-500">Did you make a mistake, for example a wrong photo?</p>
+      {error && <p className="mt-2 text-sm text-du-red">{error}</p>}
+      <button
+        disabled={busy}
+        onClick={editAgain}
+        className="mt-2 rounded border border-du-blue px-4 py-2 text-sm font-semibold text-du-blue hover:bg-blue-50 disabled:opacity-60"
+      >
+        {busy ? 'Working...' : 'Edit my profile again'}
+      </button>
+    </Card>
   )
 }
 
@@ -209,30 +241,8 @@ export default function StudentHome() {
     )
   }
 
-  if (student.profile_status === 'submitted') {
-    return changingPassword ? (
-      <div>
-        <button
-          onClick={() => setChangingPassword(false)}
-          className="ml-4 mt-4 text-sm font-semibold text-du-blue hover:underline"
-        >
-          ← Back to profile status
-        </button>
-        <ChangePassword onDone={() => setChangingPassword(false)} />
-      </div>
-    ) : (
-      <Card title="Profile under review">
-        <p>
-          Thank you. The admin is reviewing your profile. You will receive your incubation center ID once it is approved.
-        </p>
-        <button
-          onClick={() => setChangingPassword(true)}
-          className="mt-4 text-sm font-semibold text-du-blue hover:underline"
-        >
-          Change password
-        </button>
-      </Card>
-    )
+    if (student.profile_status === 'submitted') {
+    return <UnderReview onChanged={load} />
   }
 
   return <Dashboard student={student} />

@@ -51,6 +51,7 @@ export default function Dashboard() {
                 supabase.rpc('id_pool_remaining'),
         supabase.from('support_messages').select('id', head).eq('direction', 'in').is('read_at', null),
                 supabase.from('support_messages').select('id', head).eq('kind', 'reset_request').eq('status', 'open'),
+                        supabase.from('photo_change_requests').select('id', head).eq('status', 'pending'),
       ])
 
       const failed = res.find((r) => r.error)
@@ -58,7 +59,7 @@ export default function Dashboard() {
         if (!cancelled) setError(failed.error.message)
         return
       }
-      const [pend, profWait, projPend, rightsPend, students, rooms, assigns, latest, deact, upcoming, tg, openReq, pool, support, resets] = res
+      const [pend, profWait, projPend, rightsPend, students, rooms, assigns, latest, deact, upcoming, tg, openReq, pool, support, resets, photos] = res
             
       const activeStudents = students.data
       const base = activeStudents.filter((s) => s.status === 'active')
@@ -99,6 +100,7 @@ export default function Dashboard() {
         upcoming: upcoming.data,
         pool: pool.data,
                 unreadSupport: support.count ?? 0,
+                        photoChanges: photos.count ?? 0,
                         openResets: resets.count ?? 0,
       })
     }
@@ -113,6 +115,7 @@ export default function Dashboard() {
   if (!data) return <p className="text-gray-400">Loading...</p>
 
   const attention = [
+    { label: 'photo changes waiting for approval', n: data.photoChanges, to: '/admin/photos' },
     { label: 'password reset requests waiting', n: data.openResets, to: '/admin/support' },
     { label: 'unread support messages', n: data.unreadSupport, to: '/admin/support' },
     { label: 'registrations waiting for review', n: data.pendingRegistrations, to: '/admin/registrations' },

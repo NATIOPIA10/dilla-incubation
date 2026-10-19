@@ -19,6 +19,7 @@ import Certificates from './pages/admin/Certificates'
 import CertificateView from './pages/admin/CertificateView'
 import RegistrationWindows from './pages/admin/RegistrationWindows'
 import Support from './pages/admin/Support'
+import PhotoChanges from './pages/admin/PhotoChanges'
 
 export default function App() {
   return (
@@ -49,6 +50,7 @@ export default function App() {
           <Route path="certificates/:id" element={<CertificateView />} />
           <Route path="windows" element={<RegistrationWindows />} />
           <Route path="support" element={<Support />} />
+          <Route path="photos" element={<PhotoChanges />} />
         </Route>
       </Route>
     </Routes>
