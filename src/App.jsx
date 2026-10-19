@@ -20,6 +20,7 @@ import CertificateView from './pages/admin/CertificateView'
 import RegistrationWindows from './pages/admin/RegistrationWindows'
 import Support from './pages/admin/Support'
 import PhotoChanges from './pages/admin/PhotoChanges'
+import EditRegistration from './pages/EditRegistration'
 
 export default function App() {
   return (
@@ -30,6 +31,7 @@ export default function App() {
         <Route path="/verify/:token" element={<Verify />} />
         <Route path="/verify-certificate/:token" element={<VerifyCertificate />} />
         <Route path="/student" element={<StudentHome />} />
+        <Route path="/edit-registration/:token" element={<EditRegistration />} />
         <Route
           path="/admin"
           element={

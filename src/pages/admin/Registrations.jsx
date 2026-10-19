@@ -11,27 +11,21 @@ const TABS = [
 const YEARS = { 2: '2nd year', 3: '3rd year', 4: '4th year', 5: '5th year' }
 const yearText = (n) => YEARS[n] ?? String(n)
 
+function Note({ tone, children }) {
+  const cls =
+    tone === 'ok'
+      ? 'bg-green-100 text-du-green-dark'
+      : tone === 'bad'
+        ? 'bg-red-100 text-du-red'
+        : 'bg-yellow-100 text-yellow-800'
+  return <p className={`mt-3 rounded px-3 py-2 text-sm font-semibold ${cls}`}>{children}</p>
+}
+
 function TelegramStatus({ status }) {
-  if (status === 'sent') {
-    return (
-      <p className="mt-3 rounded bg-green-100 px-3 py-2 text-sm font-semibold text-du-green-dark">
-        ✔ The login was also sent to the student on Telegram.
-      </p>
-    )
-  }
-  if (status === 'failed') {
-    return (
-      <p className="mt-3 rounded bg-red-100 px-3 py-2 text-sm font-semibold text-du-red">
-        Telegram sending failed. Give the student the login by hand.
-      </p>
-    )
-  }
+  if (status === 'sent') return <Note tone="ok">✔ The login was also sent to the student on Telegram.</Note>
+  if (status === 'failed') return <Note tone="bad">Telegram sending failed. Give the student the login by hand.</Note>
   if (status === 'not_linked') {
-    return (
-      <p className="mt-3 rounded bg-yellow-100 px-3 py-2 text-sm font-semibold text-yellow-800">
-        The student has not linked Telegram. Give the student the login by hand.
-      </p>
-    )
+    return <Note>The student has not linked Telegram. Give the student the login by hand.</Note>
   }
   return null
 }
@@ -77,16 +71,68 @@ function Credentials({ student, creds, onClose }) {
   )
 }
 
+function ReturnedCard({ result, onClose }) {
+  const [copied, setCopied] = useState(false)
+  const link = result.link ?? `${window.location.origin}/edit-registration/${result.token}`
+
+  async function copy() {
+    await navigator.clipboard.writeText(link)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
+  return (
+    <div className="p-6">
+      <h3 className="mb-1 text-xl font-bold text-du-green-dark">Registration returned ✔</h3>
+      <p className="mb-3 text-sm text-gray-600">
+        The applicant can correct it with the private link below. It works once and expires on{' '}
+        {new Date(result.expires_at).toLocaleDateString()}.
+      </p>
+
+      {result.telegram === 'sent' && <Note tone="ok">✔ The link was sent to the applicant on Telegram.</Note>}
+      {result.telegram === 'not_linked' && <Note>The applicant has not linked Telegram. Give them the link below by hand.</Note>}
+      {result.telegram === 'failed' && <Note tone="bad">Telegram sending failed. Give them the link below by hand.</Note>}
+
+      <div className="mt-3 break-all rounded-lg border-2 border-du-green bg-green-50 p-3 font-mono text-xs">{link}</div>
+      <p className="mt-1 text-xs text-gray-500">Keep this link private. Anyone who has it can change this registration.</p>
+
+      <div className="mt-4 flex gap-3">
+        <button onClick={copy} className="rounded bg-du-green-dark px-4 py-2 font-semibold text-white hover:bg-du-green">
+          {copied ? 'Copied ✔' : 'Copy link'}
+        </button>
+        <button onClick={onClose} className="rounded border border-gray-300 px-4 py-2 font-semibold text-gray-600 hover:bg-gray-50">
+          Done
+        </button>
+      </div>
+    </div>
+  )
+}
+
+async function functionError(e) {
+  let msg = e.message
+  try {
+    const body = await e.context.json()
+    if (body?.error) msg = body.error
+  } catch { /* keep the generic message */ }
+  return msg
+}
+
 function ReviewModal({ student, onClose, onDone }) {
   const [photoUrl, setPhotoUrl] = useState(null)
   const [photoError, setPhotoError] = useState(false)
-  const [rejecting, setRejecting] = useState(false)
+  const [mode, setMode] = useState(null) // null | 'reject' | 'return'
   const [reason, setReason] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [creds, setCreds] = useState(null)
+  const [returned, setReturned] = useState(null)
 
   const reviewable = ['pending', 'waitlisted'].includes(student.status)
+  const isReturned = !!student.correction_reason
+  const expired =
+    isReturned &&
+    student.correction_requested_at &&
+    Date.now() - new Date(student.correction_requested_at).getTime() > 7 * 86400_000
 
   useEffect(() => {
     supabase.storage
@@ -105,28 +151,41 @@ function ReviewModal({ student, onClose, onDone }) {
       body: { studentId: student.id, siteUrl: window.location.origin },
     })
     setBusy(false)
-    if (e) {
-      let msg = e.message
-      try {
-        const body = await e.context.json()
-        if (body?.error) msg = body.error
-      } catch { /* keep the generic message */ }
-      return setError(msg)
-    }
+    if (e) return setError(await functionError(e))
     setCreds(data)
   }
 
   async function decide(decision) {
     setError('')
-    if (decision === 'rejected' && !reason.trim()) {
-      return setError('Please write the reason for rejection.')
-    }
+    if (decision === 'rejected' && !reason.trim()) return setError('Please write the reason for rejection.')
     setBusy(true)
     const { error: e } = await supabase.rpc('review_registration', {
       p_student: student.id,
       p_decision: decision,
       p_reason: decision === 'rejected' ? reason.trim() : null,
     })
+    setBusy(false)
+    if (e) return setError(e.message)
+    onDone()
+  }
+
+  async function returnForCorrection() {
+    setError('')
+    if (reason.trim().length < 3) return setError('Please write what the applicant must correct.')
+    setBusy(true)
+    const { data, error: e } = await supabase.functions.invoke('return-registration', {
+      body: { studentId: student.id, reason: reason.trim(), siteUrl: window.location.origin },
+    })
+    setBusy(false)
+    if (e) return setError(await functionError(e))
+    setReturned(data)
+  }
+
+  async function cancelReturn() {
+    if (!window.confirm('Cancel the return? The private link will stop working and the registration goes back to normal review.')) return
+    setError('')
+    setBusy(true)
+    const { error: e } = await supabase.rpc('cancel_return', { p_student: student.id })
     setBusy(false)
     if (e) return setError(e.message)
     onDone()
@@ -139,18 +198,22 @@ function ReviewModal({ student, onClose, onDone }) {
     </div>
   )
 
+  const finished = creds || returned
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
       <div className="max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-lg bg-white shadow-xl">
         <div className="flex items-center justify-between bg-du-green px-5 py-3 text-white">
           <h2 className="font-bold">Review registration</h2>
-          {!creds && (
+          {!finished && (
             <button onClick={onClose} className="text-2xl leading-none hover:text-du-gold">×</button>
           )}
         </div>
 
         {creds ? (
           <Credentials student={student} creds={creds} onClose={onDone} />
+        ) : returned ? (
+          <ReturnedCard result={returned} onClose={onDone} />
         ) : (
           <>
             <div className="grid gap-6 p-5 md:grid-cols-2">
@@ -162,6 +225,7 @@ function ReviewModal({ student, onClose, onDone }) {
                 {row('Registered', new Date(student.created_at).toLocaleString())}
                 {row('Status', student.status)}
                 {reviewable && row('Telegram', student.telegramLinked ? '✔ Linked' : 'Not linked')}
+                {student.corrected_at && !isReturned && row('Corrected by the applicant', new Date(student.corrected_at).toLocaleString())}
                 {student.rejection_reason && row('Reason', student.rejection_reason)}
 
                 <div className="mt-3">
@@ -193,11 +257,28 @@ function ReviewModal({ student, onClose, onDone }) {
               </div>
             </div>
 
+            {isReturned && (
+              <div className="mx-5 mb-4 rounded border border-yellow-400 bg-yellow-50 p-3 text-sm">
+                <p className="font-bold text-yellow-900">
+                  Returned for correction on {new Date(student.correction_requested_at).toLocaleDateString()}
+                  {expired && ' (the link has expired)'}
+                </p>
+                <p className="mt-1 text-yellow-900">{student.correction_reason}</p>
+                <p className="mt-1 text-xs text-yellow-800">
+                  Waiting for the applicant. This registration cannot be approved until it is corrected or the return is cancelled.
+                </p>
+              </div>
+            )}
+
             {reviewable && (
               <div className="border-t border-gray-200 p-5">
-                {rejecting && (
+                {mode && (
                   <div className="mb-4">
-                    <label className="mb-1 block text-sm text-gray-600">Reason for rejection</label>
+                    <label className="mb-1 block text-sm text-gray-600">
+                      {mode === 'reject'
+                        ? 'Reason for rejection'
+                        : 'What must the applicant correct? (they will see this)'}
+                    </label>
                     <textarea
                       value={reason}
                       onChange={(e) => setReason(e.target.value)}
@@ -210,7 +291,7 @@ function ReviewModal({ student, onClose, onDone }) {
                 {error && <p className="mb-3 text-sm text-du-red">{error}</p>}
 
                 <div className="flex flex-wrap gap-3">
-                  {!rejecting && (
+                  {!mode && !isReturned && (
                     <button
                       disabled={busy}
                       onClick={approve}
@@ -220,7 +301,7 @@ function ReviewModal({ student, onClose, onDone }) {
                     </button>
                   )}
 
-                  {student.status === 'pending' && !rejecting && (
+                  {!mode && !isReturned && student.status === 'pending' && (
                     <button
                       disabled={busy}
                       onClick={() => decide('waitlisted')}
@@ -230,29 +311,72 @@ function ReviewModal({ student, onClose, onDone }) {
                     </button>
                   )}
 
-                  {!rejecting ? (
+                  {!mode && (
                     <button
-                      onClick={() => setRejecting(true)}
+                      onClick={() => {
+                        setMode('return')
+                        setReason(isReturned ? student.correction_reason : '')
+                        setError('')
+                      }}
+                      className="rounded border border-yellow-600 px-4 py-2 font-semibold text-yellow-800 hover:bg-yellow-50"
+                    >
+                      {isReturned ? 'Send a new link' : 'Return for correction'}
+                    </button>
+                  )}
+
+                  {!mode && isReturned && (
+                    <button
+                      disabled={busy}
+                      onClick={cancelReturn}
+                      className="rounded border border-gray-400 px-4 py-2 font-semibold text-gray-600 hover:bg-gray-50 disabled:opacity-50"
+                    >
+                      Cancel the return
+                    </button>
+                  )}
+
+                  {!mode && (
+                    <button
+                      onClick={() => {
+                        setMode('reject')
+                        setReason('')
+                        setError('')
+                      }}
                       className="rounded border border-du-red px-4 py-2 font-semibold text-du-red hover:bg-red-50"
                     >
                       Reject
                     </button>
-                  ) : (
-                    <>
-                      <button
-                        disabled={busy}
-                        onClick={() => decide('rejected')}
-                        className="rounded bg-du-red px-4 py-2 font-semibold text-white hover:opacity-90 disabled:opacity-50"
-                      >
-                        {busy ? 'Saving...' : 'Confirm rejection'}
-                      </button>
-                      <button
-                        onClick={() => { setRejecting(false); setError('') }}
-                        className="rounded border border-gray-300 px-4 py-2 text-gray-600 hover:bg-gray-50"
-                      >
-                        Cancel
-                      </button>
-                    </>
+                  )}
+
+                  {mode === 'reject' && (
+                    <button
+                      disabled={busy}
+                      onClick={() => decide('rejected')}
+                      className="rounded bg-du-red px-4 py-2 font-semibold text-white hover:opacity-90 disabled:opacity-50"
+                    >
+                      {busy ? 'Saving...' : 'Confirm rejection'}
+                    </button>
+                  )}
+
+                  {mode === 'return' && (
+                    <button
+                      disabled={busy}
+                      onClick={returnForCorrection}
+                      className="rounded bg-yellow-600 px-4 py-2 font-semibold text-white hover:opacity-90 disabled:opacity-50"
+                    >
+                      {busy ? 'Sending...' : 'Return and send the link'}
+                    </button>
+                  )}
+
+                  {mode && (
+                    <button
+                      onClick={() => {
+                        setMode(null)
+                        setError('')
+                      }}
+                      className="rounded border border-gray-300 px-4 py-2 text-gray-600 hover:bg-gray-50"
+                    >
+                      Cancel
+                    </button>
                   )}
                 </div>
               </div>
@@ -279,7 +403,8 @@ export default function Registrations() {
       .from('students')
       .select(
         'id, full_name, university_id, phone, year_of_study, status, rejection_reason, ' +
-        'university_id_photo_path, created_at, username, proposed_titles, telegram_links(linked_at)'
+        'university_id_photo_path, created_at, username, proposed_titles, ' +
+        'correction_reason, correction_requested_at, corrected_at, telegram_links(linked_at)'
       )
       .in('status', statuses)
       .order('created_at', { ascending: true })
@@ -339,7 +464,19 @@ export default function Registrations() {
             )}
             {rows.map((r) => (
               <tr key={r.id} className="border-t border-gray-100 hover:bg-gray-50">
-                <td className="px-4 py-3 font-semibold">{r.full_name}</td>
+                <td className="px-4 py-3">
+                  <div className="font-semibold">{r.full_name}</div>
+                  {r.correction_reason && (
+                    <span className="rounded-full bg-yellow-100 px-2 py-0.5 text-xs font-semibold text-yellow-800">
+                      Returned
+                    </span>
+                  )}
+                  {!r.correction_reason && r.corrected_at && ['pending', 'waitlisted'].includes(r.status) && (
+                    <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-semibold text-du-green-dark">
+                      Corrected ✔
+                    </span>
+                  )}
+                </td>
                 <td className="px-4 py-3">{r.university_id}</td>
                 <td className="px-4 py-3">{r.phone}</td>
                 <td className="px-4 py-3">{yearText(r.year_of_study)}</td>
