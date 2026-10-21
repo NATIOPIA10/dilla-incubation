@@ -21,6 +21,7 @@ import RegistrationWindows from './pages/admin/RegistrationWindows'
 import Support from './pages/admin/Support'
 import PhotoChanges from './pages/admin/PhotoChanges'
 import EditRegistration from './pages/EditRegistration'
+import RegistrationPoster from './pages/admin/RegistrationPoster'
 
 export default function App() {
   return (
@@ -53,6 +54,7 @@ export default function App() {
           <Route path="windows" element={<RegistrationWindows />} />
           <Route path="support" element={<Support />} />
           <Route path="photos" element={<PhotoChanges />} />
+          <Route path="poster" element={<RegistrationPoster />} />
         </Route>
       </Route>
     </Routes>

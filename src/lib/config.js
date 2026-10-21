@@ -9,3 +9,5 @@ export const CONTACT = {
   telegram: 'dillaincubationbot', // support Telegram username, without the @ (optional)
   email: 'support@dillaincubation.com',    // optional
 }
+// Your live website address, used in the registration QR code. Leave '' while testing on your computer.
+export const SITE_URL = 'https://dilla-incubation.vercel.app'

@@ -11,11 +11,12 @@ export default function Certificates() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [busyId, setBusyId] = useState(null)
+  const [exporting, setExporting] = useState(false)
 
   const load = useCallback(async () => {
     const { data, error: e } = await supabase
       .from('students')
-      .select('id, full_name, department, id_number, id_year, deactivated_at, certificates(id, certificate_number)')
+      .select('id, full_name, department, id_number, id_year, deactivated_at, certificates(id, certificate_number, issued_at)')
       .eq('status', 'deactivated')
       .order('deactivated_at', { ascending: false })
     setLoading(false)
@@ -51,12 +52,77 @@ export default function Certificates() {
     navigate(`/admin/certificates/${data}`)
   }
 
+  async function exportCertificates() {
+    setError('')
+    setExporting(true)
+    try {
+      const issued = rows.flatMap((student) => {
+        const cert = Array.isArray(student.certificates) ? student.certificates[0] : student.certificates
+        return cert ? [{ student, cert }] : []
+      })
+      if (issued.length === 0) {
+        setError('There are no certificates to export.')
+        return
+      }
+
+      const mod = await import('exceljs')
+      const ExcelJS = mod.default ?? mod
+      const workbook = new ExcelJS.Workbook()
+      const sheet = workbook.addWorksheet('Certificates')
+      sheet.columns = [
+        { header: 'Certificate number', key: 'certificate', width: 24 },
+        { header: 'Student', key: 'student', width: 30 },
+        { header: 'Department', key: 'department', width: 28 },
+        { header: 'Incubation ID', key: 'id', width: 20 },
+        { header: 'Issued on', key: 'issued', width: 16 },
+      ]
+      sheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } }
+      sheet.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2F6B2F' } }
+      issued.forEach(({ student, cert }) => {
+        sheet.addRow({
+          certificate: cert.certificate_number,
+          student: student.full_name,
+          department: student.department ?? '',
+          id: fullId(student),
+          issued: cert.issued_at ? new Date(cert.issued_at).toLocaleDateString('en-GB') : '',
+        })
+      })
+
+      const buffer = await workbook.xlsx.writeBuffer()
+      const blob = new Blob([buffer], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      })
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `certificates-${new Date().toISOString().slice(0, 10)}.xlsx`
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      setTimeout(() => URL.revokeObjectURL(url), 2000)
+    } catch (e) {
+      setError(`Export failed: ${e.message}`)
+    } finally {
+      setExporting(false)
+    }
+  }
+
   return (
     <div>
       <p className="mb-4 text-sm text-gray-600">
         Certificates are issued to students who have been deactivated (graduated or left).
         Check their projects and rights in <b>Projects and rights</b> before issuing.
       </p>
+
+      <div className="mb-4 flex justify-end">
+        <button
+          onClick={exportCertificates}
+          disabled={exporting || loading}
+          className="rounded border border-du-green-dark px-4 py-2 text-sm font-semibold text-du-green-dark hover:bg-green-50 disabled:opacity-60"
+        >
+          {exporting ? 'Preparing...' : 'Export certificates to Excel'}
+        </button>
+      </div>
 
       {error && <p className="mb-3 text-sm text-du-red">{error}</p>}
 
@@ -91,7 +157,7 @@ export default function Certificates() {
                     {cert ? (
                       <Link to={`/admin/certificates/${cert.id}`}
                         className="rounded bg-du-green-dark px-3 py-1 text-white hover:bg-du-green">
-                        View
+                        View / Print
                       </Link>
                     ) : (
                       <button disabled={busyId === s.id} onClick={() => issue(s)}

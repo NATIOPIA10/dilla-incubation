@@ -13,6 +13,7 @@ const tabs = [
   { to: '/admin/windows', label: 'Registration dates' },
   { to: '/admin/support', label: 'Support' },
   { to: '/admin/photos', label: 'Photo changes' },
+  { to: '/admin/poster', label: 'Registration poster' },
 ]
 
 export default function AdminLayout() {

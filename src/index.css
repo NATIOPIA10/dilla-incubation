@@ -23,16 +23,31 @@ body {
     visibility: hidden;
   }
   #certificate-print,
-  #certificate-print * {
+  #certificate-print *,
+  #poster-print,
+  #poster-print * {
     visibility: visible;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
-  #certificate-print {
+  #certificate-print,
+  #poster-print {
     position: absolute;
     left: 0;
     top: 0;
   }
-  @page {
+  #certificate-print {
+    page: certificate;
+  }
+  #poster-print {
+    page: poster;
+  }
+  @page certificate {
     size: A4 landscape;
+    margin: 0;
+  }
+  @page poster {
+    size: A4 portrait;
     margin: 0;
   }
 }
