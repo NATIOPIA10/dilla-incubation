@@ -30,6 +30,8 @@ function TelegramStatus({ status }) {
   return null
 }
 
+
+
 function Credentials({ student, creds, onClose }) {
   const [copied, setCopied] = useState(false)
 
@@ -58,7 +60,7 @@ function Credentials({ student, creds, onClose }) {
         <div><span className="text-gray-500">Username: </span><b className="font-mono text-base">{creds.username}</b></div>
         <div><span className="text-gray-500">Temporary password: </span><b className="font-mono text-base">{creds.tempPassword}</b></div>
       </div>
-      <TelegramStatus status={creds.telegram} />
+            <TelegramStatus status={creds.telegram} />
       <div className="mt-4 flex gap-3">
         <button onClick={copy} className="rounded bg-du-green-dark px-4 py-2 font-semibold text-white hover:bg-du-green">
           {copied ? 'Copied ✔' : 'Copy login details'}
@@ -90,7 +92,7 @@ function ReturnedCard({ result, onClose }) {
       </p>
 
       {result.telegram === 'sent' && <Note tone="ok">✔ The link was sent to the applicant on Telegram.</Note>}
-      {result.telegram === 'not_linked' && <Note>The applicant has not linked Telegram. Give them the link below by hand.</Note>}
+            {result.telegram === 'not_linked' && <Note>The applicant has not linked Telegram. Give them the link below by hand.</Note>}
       {result.telegram === 'failed' && <Note tone="bad">Telegram sending failed. Give them the link below by hand.</Note>}
 
       <div className="mt-3 break-all rounded-lg border-2 border-du-green bg-green-50 p-3 font-mono text-xs">{link}</div>

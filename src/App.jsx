@@ -23,6 +23,7 @@ import PhotoChanges from './pages/admin/PhotoChanges'
 import EditRegistration from './pages/EditRegistration'
 import RegistrationPoster from './pages/admin/RegistrationPoster'
 
+
 export default function App() {
   return (
     <Routes>

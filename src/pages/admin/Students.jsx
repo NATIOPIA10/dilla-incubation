@@ -166,9 +166,10 @@ function StudentModal({ student, onClose, onChanged }) {
             )}
             {creds.telegram === 'not_linked' && (
               <p className="mt-3 rounded bg-yellow-100 px-3 py-2 text-sm font-semibold text-yellow-800">
-                The student has not linked Telegram. Give the student the password by hand.
+               The student has not linked Telegram.
               </p>
             )}
+         
             <div className="mt-4 flex gap-3">
               <button onClick={copy}
                 className="rounded bg-du-green-dark px-4 py-2 font-semibold text-white hover:bg-du-green">
