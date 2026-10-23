@@ -50,4 +50,16 @@ body {
     size: A4 portrait;
     margin: 0;
   }
+
+  /* The admin screen frame must not clip or push the printed page */
+  .admin-shell,
+  .admin-scroll {
+    position: static !important;
+    overflow: visible !important;
+    height: auto !important;
+    display: block !important;
+  }
+  .admin-chrome {
+    display: none !important;
+  }
 }
