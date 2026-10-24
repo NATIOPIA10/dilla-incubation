@@ -1,43 +1,63 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
+import {
+  Award,
+  BadgeCheck,
+  CalendarDays,
+  ClipboardList,
+  DoorOpen,
+  GraduationCap,
+  ImagePlus,
+  LayoutDashboard,
+  ListChecks,
+  LogOut,
+  Megaphone,
+  Menu,
+  MessageSquare,
+  PanelLeftClose,
+  PanelLeftOpen,
+  QrCode,
+  UserCheck,
+  X,
+} from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 
 const GROUPS = [
   {
     title: 'Overview',
-    items: [{ to: '/admin', label: 'Dashboard', icon: '📊', end: true }],
+    items: [{ to: '/admin', label: 'Dashboard', icon: LayoutDashboard, end: true }],
   },
   {
     title: 'Applicants and students',
     items: [
-      { to: '/admin/registrations', label: 'Registrations', icon: '📝', badge: 'registrations' },
-      { to: '/admin/profiles', label: 'Profiles', icon: '👤', badge: 'profiles' },
-      { to: '/admin/students', label: 'Students', icon: '🎓' },
-      { to: '/admin/photos', label: 'Photo changes', icon: '🖼️', badge: 'photos' },
+      { to: '/admin/registrations', label: 'Registrations', icon: ClipboardList, badge: 'registrations' },
+      { to: '/admin/profiles', label: 'Profiles', icon: UserCheck, badge: 'profiles' },
+      { to: '/admin/students', label: 'Students', icon: GraduationCap },
+      { to: '/admin/photos', label: 'Photo changes', icon: ImagePlus, badge: 'photos' },
     ],
   },
   {
     title: 'Center',
     items: [
-      { to: '/admin/rooms', label: 'Rooms', icon: '🏠' },
-      { to: '/admin/events', label: 'Announcements', icon: '📢' },
-      { to: '/admin/support', label: 'Support', icon: '💬', badge: 'support' },
+      { to: '/admin/rooms', label: 'Rooms', icon: DoorOpen },
+      { to: '/admin/events', label: 'Announcements', icon: Megaphone },
+      { to: '/admin/support', label: 'Support', icon: MessageSquare, badge: 'support' },
     ],
   },
   {
     title: 'Projects',
     items: [
-      { to: '/admin/status', label: 'Project status', icon: '📋' },
-      { to: '/admin/verification', label: 'Projects and rights', icon: '✅', badge: 'verification' },
-      { to: '/admin/certificates', label: 'Certificates', icon: '🏅' },
+      { to: '/admin/status', label: 'Project status', icon: ListChecks },
+      { to: '/admin/verification', label: 'Projects and rights', icon: BadgeCheck, badge: 'verification' },
+      { to: '/admin/certificates', label: 'Certificates', icon: Award },
     ],
   },
   {
     title: 'Registration setup',
     items: [
-      { to: '/admin/windows', label: 'Registration dates', icon: '📅' },
-      { to: '/admin/poster', label: 'Registration poster', icon: '🔳' },
+      { to: '/admin/windows', label: 'Registration dates', icon: CalendarDays },
+      { to: '/admin/poster', label: 'Registration poster', icon: QrCode },
     ],
   },
 ]
@@ -95,6 +115,7 @@ function SidebarNav({ counts, collapsed, onNavigate }) {
           {collapsed && gi > 0 && <div className="mb-2 hidden border-t border-white/15 md:block" />}
           <ul className="space-y-0.5">
             {g.items.map((it) => {
+              const Icon = it.icon
               const n = counts[it.badge] ?? 0
               return (
                 <li key={it.to}>
@@ -113,7 +134,7 @@ function SidebarNav({ counts, collapsed, onNavigate }) {
                       }`
                     }
                   >
-                    <span className="w-5 text-center text-base" aria-hidden="true">{it.icon}</span>
+                    <Icon size={18} strokeWidth={2} className="shrink-0" aria-hidden="true" />
                     <span className={`flex-1 truncate ${collapsed ? 'md:hidden' : ''}`}>{it.label}</span>
                     {n > 0 && (
                       <>
@@ -200,24 +221,31 @@ export default function AdminLayout() {
           open ? 'translate-x-0' : '-translate-x-full'
         } ${collapsed ? 'md:w-[72px]' : 'md:w-64'}`}
       >
-        <Link
-          to="/admin"
-          className={`flex h-14 shrink-0 items-center gap-3 border-b border-white/15 px-4 ${
-            collapsed ? 'md:justify-center md:px-0' : ''
-          }`}
-        >
-          {logoOk ? (
-            <img src="/logo.png" alt="" className="h-9 w-9 shrink-0 object-contain" onError={() => setLogoOk(false)} />
-          ) : (
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded bg-white/15 text-sm font-bold">
-              DU
-            </span>
-          )}
-          <div className={`min-w-0 leading-tight ${collapsed ? 'md:hidden' : ''}`}>
-            <div className="truncate text-sm font-bold tracking-wide">DILLA UNIVERSITY</div>
-            <div className="truncate text-[11px] text-du-gold">Incubation Center · Admin</div>
-          </div>
-        </Link>
+        <div className="flex h-14 shrink-0 items-center border-b border-white/15">
+          <Link
+            to="/admin"
+            className={`flex min-w-0 flex-1 items-center gap-3 px-4 ${collapsed ? 'md:justify-center md:px-0' : ''}`}
+          >
+            {logoOk ? (
+              <img src="/logo.png" alt="" className="h-9 w-9 shrink-0 object-contain" onError={() => setLogoOk(false)} />
+            ) : (
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded bg-white/15 text-sm font-bold">
+                DU
+              </span>
+            )}
+            <div className={`min-w-0 leading-tight ${collapsed ? 'md:hidden' : ''}`}>
+              <div className="truncate text-sm font-bold tracking-wide">DILLA UNIVERSITY</div>
+              <div className="truncate text-[11px] text-du-gold">Incubation Center · Admin</div>
+            </div>
+          </Link>
+          <button
+            onClick={() => setOpen(false)}
+            className="mr-3 rounded p-1 text-white/70 hover:bg-white/10 hover:text-white md:hidden"
+            aria-label="Close the menu"
+          >
+            <X size={20} />
+          </button>
+        </div>
 
         <div className="flex-1 overflow-y-auto">
           <SidebarNav counts={counts} collapsed={collapsed} onNavigate={() => setOpen(false)} />
@@ -236,7 +264,7 @@ export default function AdminLayout() {
               collapsed ? 'md:justify-center md:px-0' : ''
             }`}
           >
-            <span className="w-5 text-center text-base" aria-hidden="true">🚪</span>
+            <LogOut size={18} className="shrink-0" aria-hidden="true" />
             <span className={collapsed ? 'md:hidden' : ''}>Log out</span>
           </button>
           <button
@@ -246,7 +274,11 @@ export default function AdminLayout() {
               collapsed ? 'md:justify-center md:px-0' : ''
             }`}
           >
-            <span className="w-5 text-center text-base" aria-hidden="true">{collapsed ? '»' : '«'}</span>
+            {collapsed ? (
+              <PanelLeftOpen size={18} className="shrink-0" aria-hidden="true" />
+            ) : (
+              <PanelLeftClose size={18} className="shrink-0" aria-hidden="true" />
+            )}
             <span className={collapsed ? 'md:hidden' : ''}>Collapse menu</span>
           </button>
         </div>
@@ -257,10 +289,11 @@ export default function AdminLayout() {
         <header className="admin-chrome flex h-14 shrink-0 items-center gap-3 border-b border-gray-200 bg-white px-4">
           <button
             onClick={() => setOpen(true)}
-            className="relative rounded border border-du-green-dark px-3 py-1.5 text-sm font-semibold text-du-green-dark hover:bg-green-50 md:hidden"
+            className="relative flex items-center gap-2 rounded border border-du-green-dark px-3 py-1.5 text-sm font-semibold text-du-green-dark hover:bg-green-50 md:hidden"
             aria-label="Open the menu"
           >
-            ☰ Menu
+            <Menu size={18} aria-hidden="true" />
+            Menu
             {anyWaiting && <span className="absolute -right-1 -top-1 h-3 w-3 rounded-full bg-du-red" />}
           </button>
           <h1 className="truncate text-lg font-bold text-du-green-dark">{title}</h1>
