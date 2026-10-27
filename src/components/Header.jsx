@@ -30,7 +30,7 @@ export default function Header() {
         <nav className="flex items-center gap-5 text-sm font-semibold">
           {!session && (
             <>
-              <Link to="/" className="hover:text-du-gold">Login</Link>
+               <Link to="/login" className="hover:text-du-gold">Login</Link>
               <Link to="/register" className="hover:text-du-gold">Register</Link>
             </>
           )}

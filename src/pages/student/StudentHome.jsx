@@ -202,7 +202,7 @@ export default function StudentHome() {
   }, [load])
 
   if (authLoading) return <p className="text-center p-10 text-gray-500">Loading...</p>
-  if (!session) return <Navigate to="/" replace />
+  if (!session) return <Navigate to="/login" replace />
   if (isAdmin) return <Navigate to="/admin" replace />
   if (student === undefined) return <p className="text-center p-10 text-gray-500">Loading...</p>
 
