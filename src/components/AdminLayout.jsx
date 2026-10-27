@@ -7,6 +7,7 @@ import {
   ClipboardList,
   DoorOpen,
   GraduationCap,
+  Globe,
   ImagePlus,
   LayoutDashboard,
   ListChecks,
@@ -52,6 +53,10 @@ const GROUPS = [
       { to: '/admin/verification', label: 'Projects and rights', icon: BadgeCheck, badge: 'verification' },
       { to: '/admin/certificates', label: 'Certificates', icon: Award },
     ],
+  },
+  {
+    title: 'Website',
+    items: [{ to: '/admin/website', label: 'Website content', icon: Globe }],
   },
   {
     title: 'Registration setup',
