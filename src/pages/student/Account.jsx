@@ -176,6 +176,41 @@ function PhotoChange({ student, kind, title, help, bucket, maxBytes, canSee, req
     </div>
   )
 }
+function NamePrivacy({ student }) {
+  const [hidden, setHidden] = useState(!!student.hide_public_name)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+
+  async function toggle() {
+    setError('')
+    setBusy(true)
+    const next = !hidden
+    const { error: e } = await supabase.rpc('set_public_name_hidden', { p_hidden: next })
+    setBusy(false)
+    if (e) return setError(e.message)
+    setHidden(next)
+  }
+
+  return (
+    <div className="mt-5 rounded-lg border-t-4 border-du-green bg-white p-5 shadow">
+      <h3 className="font-bold text-du-green-dark">Public website</h3>
+      <p className="mb-3 text-sm text-gray-600">
+        When the admin verifies one of your projects, it can appear on the public website, which anyone can see.
+      </p>
+      <label className="flex items-start gap-3 text-sm text-gray-800">
+        <input type="checkbox" className="mt-1" checked={!hidden} disabled={busy} onChange={toggle} />
+        <span>
+          <b>Show my name and department</b> next to my verified projects on the public website.
+          <span className="block text-xs text-gray-500">
+            If you turn this off, your projects appear as &ldquo;by a Dilla University student&rdquo;. Members of the
+            center still see your name in the showcase.
+          </span>
+        </span>
+      </label>
+      {error && <p className="mt-2 text-sm text-du-red">{error}</p>}
+    </div>
+  )
+}
 
 export default function Account({ student, go }) {
   const [requests, setRequests] = useState(undefined)
@@ -229,6 +264,7 @@ export default function Account({ student, go }) {
           onChanged={load}
         />
       </div>
+          <NamePrivacy student={student} />
     </div>
   )
 }

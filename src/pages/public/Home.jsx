@@ -14,10 +14,21 @@ const STEPS = [
   ['Earn recognition', 'Verified projects are showcased, and graduates receive a certificate.'],
 ]
 
+const STAT_LABELS = [
+  ['members', 'Members'],
+  ['projects', 'Verified projects'],
+  ['deployed', 'Deployed projects'],
+  ['rights', 'Copyright and patent rights'],
+]
+
+const imageUrl = (path) => supabase.storage.from('announcement-images').getPublicUrl(path).data.publicUrl
+
 export default function Home() {
   usePageTitle('')
   const { content } = useOutletContext()
   const [win, setWin] = useState(undefined) // undefined = loading, null = closed
+  const [stats, setStats] = useState(null)
+  const [news, setNews] = useState([])
 
   useEffect(() => {
     supabase
@@ -27,7 +38,24 @@ export default function Home() {
       .limit(1)
       .maybeSingle()
       .then(({ data }) => setWin(data ?? null))
+
+    supabase
+      .from('public_stats')
+      .select('*')
+      .maybeSingle()
+      .then(({ data }) => setStats(data ?? null))
+
+    supabase
+      .from('public_news')
+      .select('id, title, details, event_date, image_path, created_at')
+      .order('created_at', { ascending: false })
+      .limit(3)
+      .then(({ data }) => setNews(data ?? []))
   }, [])
+
+  const statItems = stats
+    ? STAT_LABELS.map(([key, label]) => ({ label, value: Number(stats[key] ?? 0) })).filter((s) => s.value > 0)
+    : []
 
   return (
     <div>
@@ -68,6 +96,20 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Numbers */}
+      {statItems.length > 0 && (
+        <section className="bg-white shadow-sm">
+          <div className="mx-auto grid max-w-6xl grid-cols-2 gap-6 px-4 py-8 md:grid-cols-4">
+            {statItems.map((s) => (
+              <div key={s.label} className="text-center">
+                <div className="text-4xl font-bold text-du-green-dark">{s.value.toLocaleString('en-GB')}</div>
+                <div className="mt-1 text-sm text-gray-600">{s.label}</div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
       {/* What we offer */}
       {content.offer.length > 0 && (
         <section className="mx-auto max-w-6xl px-4 py-14">
@@ -89,13 +131,43 @@ export default function Home() {
         </section>
       )}
 
+      {/* Latest news */}
+      {news.length > 0 && (
+        <section className="bg-white py-14">
+          <div className="mx-auto max-w-6xl px-4">
+            <div className="flex items-end justify-between gap-3">
+              <h2 className="text-2xl font-bold text-du-green-dark">Latest news</h2>
+              <Link to="/news" className="text-sm font-semibold text-du-blue hover:underline">All news →</Link>
+            </div>
+            <div className="mt-6 grid gap-5 md:grid-cols-3">
+              {news.map((n) => (
+                <Link
+                  key={n.id}
+                  to="/news"
+                  className="overflow-hidden rounded-xl border border-gray-200 bg-du-bg shadow-sm hover:shadow-md"
+                >
+                  {n.image_path && (
+                    <img src={imageUrl(n.image_path)} alt="" className="h-40 w-full object-cover" loading="lazy" />
+                  )}
+                  <div className="p-4">
+                    <div className="text-xs text-gray-400">{new Date(n.created_at).toLocaleDateString('en-GB')}</div>
+                    <h3 className="mt-1 font-bold text-du-green-dark">{n.title}</h3>
+                    <p className="mt-1 line-clamp-3 text-sm text-gray-700">{n.details}</p>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* How it works */}
-      <section className="bg-white py-14">
+      <section className={news.length > 0 ? 'py-14' : 'bg-white py-14'}>
         <div className="mx-auto max-w-6xl px-4">
           <h2 className="text-2xl font-bold text-du-green-dark">How it works</h2>
           <ol className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-5">
             {STEPS.map(([title, text], i) => (
-              <li key={title} className="rounded-xl bg-du-bg p-4">
+              <li key={title} className={`rounded-xl p-4 ${news.length > 0 ? 'bg-white shadow' : 'bg-du-bg'}`}>
                 <span className="flex h-8 w-8 items-center justify-center rounded-full bg-du-green font-bold text-white">
                   {i + 1}
                 </span>

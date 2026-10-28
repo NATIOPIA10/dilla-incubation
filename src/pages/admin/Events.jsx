@@ -92,6 +92,7 @@ export default function Events() {
   const [link, setLink] = useState('')
   const [image, setImage] = useState(null)
   const [telegram, setTelegram] = useState(true)
+  const [isPublic, setIsPublic] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
@@ -148,6 +149,7 @@ export default function Events() {
         location: location.trim() || null,
         link_url: cleanLink || null,
         image_path: imagePath,
+        is_public: isPublic,
         created_by: session.user.id,
       })
       .select('id')
@@ -160,12 +162,14 @@ export default function Events() {
     }
 
     // 3. Telegram (optional)
-    let message = 'Announcement posted on the student dashboards ✔'
+    let message = isPublic
+      ? 'Announcement posted on the student dashboards and on the public website ✔'
+      : 'Announcement posted on the student dashboards ✔'
     if (telegram) {
       const tgError = await sendToTelegram(data.id)
       message = tgError
-        ? `Posted on the dashboards, but Telegram failed: ${tgError}. You can retry from the list below.`
-        : 'Posted on the dashboards and sent to Telegram ✔'
+        ? `Posted, but Telegram failed: ${tgError}. You can retry from the list below.`
+        : `${message.replace(' ✔', '')} and sent to Telegram ✔`
     }
     setBusy(false)
     setNotice(message)
@@ -175,6 +179,7 @@ export default function Events() {
     setLocation('')
     setLink('')
     setImage(null)
+    setIsPublic(false)
     load()
   }
 
@@ -184,6 +189,12 @@ export default function Events() {
     const tgError = await sendToTelegram(id)
     setSendingId(null)
     setNotice(tgError ? `Telegram failed: ${tgError}` : 'Sent to Telegram ✔')
+    load()
+  }
+
+  async function togglePublic(ev) {
+    const { error: e } = await supabase.from('events').update({ is_public: !ev.is_public }).eq('id', ev.id)
+    if (e) return setListError(e.message)
     load()
   }
 
@@ -217,10 +228,18 @@ export default function Events() {
 
         <ImagePicker file={image} onChange={setImage} />
 
-        <label className="mb-4 flex items-center gap-2 text-sm text-gray-700">
+        <label className="mb-2 flex items-center gap-2 text-sm text-gray-700">
           <input type="checkbox" checked={telegram} onChange={(e) => setTelegram(e.target.checked)} />
           Also send to Telegram
         </label>
+
+        <label className="mb-1 flex items-center gap-2 text-sm text-gray-700">
+          <input type="checkbox" checked={isPublic} onChange={(e) => setIsPublic(e.target.checked)} />
+          Show on the public website
+        </label>
+        <p className="mb-4 text-xs text-gray-500">
+          Anyone on the internet can read public announcements. Do not include private information.
+        </p>
 
         {error && <p className="mb-3 text-sm text-du-red">{error}</p>}
         {notice && <p className="mb-3 text-sm text-du-green-dark">{notice}</p>}
@@ -242,8 +261,11 @@ export default function Events() {
             <div key={ev.id} className="rounded-lg bg-white p-4 shadow">
               <div className="flex items-start justify-between gap-3">
                 <h3 className="font-bold text-du-green-dark">{ev.title}</h3>
-                <span className="shrink-0 text-xs text-gray-400">
-                  {new Date(ev.created_at).toLocaleDateString()}
+                <span className="flex shrink-0 items-center gap-2">
+                  {ev.is_public && (
+                    <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-semibold text-du-blue">Public</span>
+                  )}
+                  <span className="text-xs text-gray-400">{new Date(ev.created_at).toLocaleDateString()}</span>
                 </span>
               </div>
               {(ev.event_date || ev.location) && (
@@ -276,7 +298,10 @@ export default function Events() {
                 ) : (
                   <span className="rounded-full bg-gray-100 px-2 py-0.5 text-gray-500">Not sent to Telegram</span>
                 )}
-                <div className="flex gap-3">
+                <div className="flex flex-wrap gap-3">
+                  <button onClick={() => togglePublic(ev)} className="text-du-blue hover:underline">
+                    {ev.is_public ? 'Hide from website' : 'Show on website'}
+                  </button>
                   <button disabled={sendingId === ev.id} onClick={() => resend(ev.id)}
                     className="text-du-blue hover:underline disabled:opacity-50">
                     {sendingId === ev.id ? 'Sending...' : ev.telegram_sent_at ? 'Send again' : 'Send to Telegram'}

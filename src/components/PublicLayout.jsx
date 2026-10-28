@@ -8,6 +8,8 @@ import { mergeContent } from '../lib/siteDefaults'
 const NAV = [
   { to: '/', label: 'Home', end: true },
   { to: '/about', label: 'About' },
+  { to: '/projects', label: 'Projects' },
+  { to: '/news', label: 'News' },
   { to: '/contact', label: 'Contact' },
 ]
 

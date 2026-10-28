@@ -27,6 +27,8 @@ import Verification from './pages/admin/Verification'
 import Certificates from './pages/admin/Certificates'
 import CertificateView from './pages/admin/CertificateView'
 import WebsiteContent from './pages/admin/WebsiteContent'
+import Projects from './pages/public/Projects'
+import News from './pages/public/News'
 
 export default function App() {
   return (
@@ -36,6 +38,8 @@ export default function App() {
         <Route path="/" element={<Home />} />
         <Route path="/about" element={<About />} />
         <Route path="/contact" element={<Contact />} />
+        <Route path="/projects" element={<Projects />} />
+        <Route path="/news" element={<News />} />
       </Route>
 
       {/* The system */}
