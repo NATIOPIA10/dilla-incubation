@@ -1,13 +1,35 @@
 import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
 import { STAGES, stageLabel, stateLabel } from '../../lib/stages'
-import { exportProjects } from '../../lib/exportProjects'
+import { studentProgress } from '../../lib/statusProgress'
 
 const inputCls =
   'w-full mb-4 rounded border border-gray-300 bg-blue-50 px-3 py-2 focus:outline-none focus:border-du-green'
 
+function ProgressBadge({ p }) {
+  if (p.complete) {
+    return (
+      <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-semibold text-du-green-dark">
+        Complete · {p.done} of {p.needed}
+      </span>
+    )
+  }
+  if (p.partial) {
+    return (
+      <span className="rounded-full bg-yellow-100 px-2 py-0.5 text-xs font-semibold text-yellow-800">
+        Incomplete · {p.done} of {p.needed}
+      </span>
+    )
+  }
+  return (
+    <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-du-red">
+      Not yet · 0 of {p.needed}
+    </span>
+  )
+}
+
 function Responses({ request, onClose }) {
-  const [rows, setRows] = useState(undefined)
+  const [data, setData] = useState(undefined)
   const [error, setError] = useState('')
 
   useEffect(() => {
@@ -17,26 +39,69 @@ function Responses({ request, onClose }) {
         .select('student_id, students(full_name, department)')
         .eq('request_id', request.id),
       supabase.from('status_submissions').select('*').eq('request_id', request.id),
-    ]).then(([r, s]) => {
+    ]).then(async ([r, s]) => {
       const err = r.error || s.error
       if (err) return setError(err.message)
-      const byStudent = new Map(s.data.map((x) => [x.student_id, x]))
-      const merged = r.data
-        .map((x) => ({ ...x, sub: byStudent.get(x.student_id) ?? null }))
-        .sort((a, b) => a.students.full_name.localeCompare(b.students.full_name))
-      setRows(merged)
+
+      const ids = r.data.map((x) => x.student_id)
+      let ti = []
+      if (ids.length) {
+        const res = await supabase
+          .from('project_titles')
+          .select('id, title, student_id, created_at')
+          .in('student_id', ids)
+          .order('created_at')
+        if (res.error) return setError(res.error.message)
+        ti = res.data
+      }
+
+      const rows = r.data
+        .map((rec) => {
+          const st = Array.isArray(rec.students) ? rec.students[0] : rec.students
+          const myTitles = ti.filter((t) => t.student_id === rec.student_id)
+          const mySubs = s.data.filter((x) => x.student_id === rec.student_id)
+          const progress = studentProgress(myTitles, mySubs)
+
+          const lines = myTitles.map((t) => ({
+            key: t.id,
+            title: t.title,
+            sub: mySubs.find((x) => x.title_id === t.id) ?? null,
+          }))
+          const known = new Set(myTitles.map((t) => t.id))
+          for (const x of mySubs) {
+            if (!x.title_id || !known.has(x.title_id)) {
+              lines.push({
+                key: x.id,
+                title: x.title_id ? `${x.title_text ?? 'A removed title'} (title removed)` : 'General (no project chosen)',
+                sub: x,
+              })
+            }
+          }
+          if (myTitles.length === 0 && mySubs.length === 0) {
+            lines.push({ key: 'none', title: 'No project titles yet', sub: null })
+          }
+          return {
+            id: rec.student_id,
+            name: st?.full_name ?? 'Student',
+            department: st?.department,
+            progress,
+            lines,
+          }
+        })
+        .sort((a, b) => a.name.localeCompare(b.name))
+
+      setData({ rows, submissions: s.data })
     })
   }, [request.id])
 
-  const answered = rows ? rows.filter((r) => r.sub).length : 0
-  const counts = STAGES.map((st) => ({
-    ...st,
-    n: rows ? rows.filter((r) => r.sub?.stage === st.key).length : 0,
-  }))
+  const rows = data?.rows ?? []
+  const complete = rows.filter((r) => r.progress.complete).length
+  const partial = rows.filter((r) => r.progress.partial).length
+  const none = rows.length - complete - partial
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="max-h-[92vh] w-full max-w-4xl overflow-y-auto rounded-lg bg-white shadow-xl">
+      <div className="max-h-[92vh] w-full max-w-5xl overflow-y-auto rounded-lg bg-white shadow-xl">
         <div className="flex items-center justify-between bg-du-green px-5 py-3 text-white">
           <h2 className="font-bold">{request.title}</h2>
           <button onClick={onClose} className="text-2xl leading-none hover:text-du-gold">×</button>
@@ -44,23 +109,25 @@ function Responses({ request, onClose }) {
 
         <div className="p-5">
           {error && <p className="text-sm text-du-red">{error}</p>}
-          {rows === undefined && !error && <p className="text-gray-400">Loading...</p>}
+          {!data && !error && <p className="text-gray-400">Loading...</p>}
 
-          {rows && (
+          {data && (
             <>
               <p className="mb-3 text-sm text-gray-600">
-                <b>{answered}</b> of <b>{rows.length}</b> students have responded
+                <b>{complete}</b> of <b>{rows.length}</b> students reported on all their projects
+                {partial > 0 && <> · <b>{partial}</b> incomplete</>}
+                {none > 0 && <> · <b>{none}</b> not yet</>}
                 {request.deadline && ` · deadline ${new Date(request.deadline).toLocaleString()}`}
               </p>
 
               <div className="mb-4 flex flex-wrap gap-2">
-                {counts.map((c) => (
-                  <span key={c.key} className="rounded-full bg-du-blue/10 px-3 py-1 text-xs font-semibold text-du-blue">
-                    {c.label}: {c.n}
+                {STAGES.map((st) => (
+                  <span key={st.key} className="rounded-full bg-du-blue/10 px-3 py-1 text-xs font-semibold text-du-blue">
+                    {st.label}: {data.submissions.filter((x) => x.stage === st.key).length}
                   </span>
                 ))}
-                <span className="rounded-full bg-red-100 px-3 py-1 text-xs font-semibold text-du-red">
-                  Not yet: {rows.length - answered}
+                <span className="rounded-full bg-gray-100 px-3 py-1 text-xs text-gray-500">
+                  (stage counts are per project)
                 </span>
               </div>
 
@@ -68,7 +135,7 @@ function Responses({ request, onClose }) {
                 <table className="w-full text-left text-sm">
                   <thead className="bg-du-green/10 text-du-green-dark">
                     <tr>
-                      <th className="px-3 py-2">Student</th>
+                      <th className="px-3 py-2">Project</th>
                       <th className="px-3 py-2">Stage</th>
                       <th className="px-3 py-2">State</th>
                       <th className="px-3 py-2">Note</th>
@@ -80,38 +147,7 @@ function Responses({ request, onClose }) {
                       <tr><td colSpan={5} className="px-3 py-6 text-center text-gray-400">No students received this request.</td></tr>
                     )}
                     {rows.map((r) => (
-                      <tr key={r.student_id} className="border-t border-gray-100 align-top">
-                        <td className="px-3 py-2">
-                          <div className="font-semibold">{r.students.full_name}</div>
-                          <div className="text-xs text-gray-500">{r.students.department}</div>
-                        </td>
-                        {r.sub ? (
-                          <>
-                            <td className="px-3 py-2">{stageLabel(r.sub.stage)}</td>
-                            <td className="px-3 py-2">
-                              <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
-                                r.sub.state === 'finished' ? 'bg-green-100 text-du-green-dark' : 'bg-yellow-100 text-yellow-800'}`}>
-                                {stateLabel(r.sub.state)}
-                              </span>
-                            </td>
-                            <td className="px-3 py-2 text-gray-600">
-                              {r.sub.note}
-                              {r.sub.link && (
-                                <div>
-                                  <a href={r.sub.link} target="_blank" rel="noreferrer" className="text-du-blue underline">
-                                    Link
-                                  </a>
-                                </div>
-                              )}
-                            </td>
-                            <td className="px-3 py-2 text-xs text-gray-500">
-                              {new Date(r.sub.updated_at).toLocaleString()}
-                            </td>
-                          </>
-                        ) : (
-                          <td colSpan={4} className="px-3 py-2 font-semibold text-du-red">Not yet submitted</td>
-                        )}
-                      </tr>
+                      <FragmentRows key={r.id} r={r} />
                     ))}
                   </tbody>
                 </table>
@@ -124,10 +160,55 @@ function Responses({ request, onClose }) {
   )
 }
 
+function FragmentRows({ r }) {
+  return (
+    <>
+      <tr className="border-t-2 border-gray-200 bg-gray-50">
+        <td colSpan={5} className="px-3 py-2">
+          <span className="font-bold">{r.name}</span>
+          <span className="text-xs text-gray-500"> · {r.department || 'No department'} </span>
+          <ProgressBadge p={r.progress} />
+        </td>
+      </tr>
+      {r.lines.map((l) => (
+        <tr key={l.key} className="border-t border-gray-100 align-top">
+          <td className="px-3 py-2 pl-6 font-semibold">{l.title}</td>
+          {l.sub ? (
+            <>
+              <td className="px-3 py-2">{stageLabel(l.sub.stage)}</td>
+              <td className="px-3 py-2">
+                <span
+                  className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
+                    l.sub.state === 'finished' ? 'bg-green-100 text-du-green-dark' : 'bg-yellow-100 text-yellow-800'
+                  }`}
+                >
+                  {stateLabel(l.sub.state)}
+                </span>
+              </td>
+              <td className="px-3 py-2 text-gray-600">
+                {l.sub.note}
+                {l.sub.link && (
+                  <div>
+                    <a href={l.sub.link} target="_blank" rel="noreferrer" className="text-du-blue underline">
+                      Link
+                    </a>
+                  </div>
+                )}
+              </td>
+              <td className="px-3 py-2 text-xs text-gray-500">{new Date(l.sub.updated_at).toLocaleString()}</td>
+            </>
+          ) : (
+            <td colSpan={4} className="px-3 py-2 font-semibold text-du-red">Not yet submitted</td>
+          )}
+        </tr>
+      ))}
+    </>
+  )
+}
+
 export default function StatusRequests() {
   const [requests, setRequests] = useState([])
-  const [recipientCount, setRecipientCount] = useState({})
-  const [answerCount, setAnswerCount] = useState({})
+  const [stats, setStats] = useState({})
   const [students, setStudents] = useState([])
   const [loading, setLoading] = useState(true)
   const [listError, setListError] = useState('')
@@ -141,40 +222,43 @@ export default function StatusRequests() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
-  const [exporting, setExporting] = useState(false)
-  const [exportError, setExportError] = useState('')
-
-  async function doExport() {
-    setExportError('')
-    setExporting(true)
-    try {
-      const count = await exportProjects()
-      if (count === 0) setExportError('There are no project or status records to export.')
-    } catch (e) {
-      setExportError(`Export failed: ${e.message}`)
-    } finally {
-      setExporting(false)
-    }
-  }
 
   const load = useCallback(async () => {
-    const [rq, rc, sb, st] = await Promise.all([
+    const [rq, rc, sb, ti, st] = await Promise.all([
       supabase.from('status_requests').select('*').order('created_at', { ascending: false }),
-      supabase.from('status_request_recipients').select('request_id'),
-      supabase.from('status_submissions').select('request_id'),
+      supabase.from('status_request_recipients').select('request_id, student_id'),
+      supabase.from('status_submissions').select('request_id, student_id, title_id'),
+      supabase.from('project_titles').select('id, student_id'),
       supabase.from('students').select('id, full_name, department').eq('status', 'active').order('full_name'),
     ])
-    const err = rq.error || rc.error || sb.error || st.error
-    if (err) setListError(err.message)
-    else {
-      setListError('')
-      setRequests(rq.data)
-      const count = (rows) =>
-        rows.reduce((acc, r) => ({ ...acc, [r.request_id]: (acc[r.request_id] ?? 0) + 1 }), {})
-      setRecipientCount(count(rc.data))
-      setAnswerCount(count(sb.data))
-      setStudents(st.data)
+    const err = rq.error || rc.error || sb.error || ti.error || st.error
+    if (err) {
+      setListError(err.message)
+      setLoading(false)
+      return
     }
+    setListError('')
+    setRequests(rq.data)
+    setStudents(st.data)
+
+    const titlesBy = {}
+    ti.data.forEach((t) => (titlesBy[t.student_id] ||= []).push(t))
+    const subsBy = {}
+    sb.data.forEach((s) => (subsBy[`${s.request_id}:${s.student_id}`] ||= []).push(s))
+
+    const out = {}
+    for (const r of rq.data) {
+      const recips = rc.data.filter((x) => x.request_id === r.id)
+      let complete = 0
+      let partial = 0
+      for (const rec of recips) {
+        const p = studentProgress(titlesBy[rec.student_id] ?? [], subsBy[`${r.id}:${rec.student_id}`] ?? [])
+        if (p.complete) complete++
+        else if (p.partial) partial++
+      }
+      out[r.id] = { total: recips.length, complete, partial }
+    }
+    setStats(out)
     setLoading(false)
   }, [])
 
@@ -218,7 +302,10 @@ export default function StatusRequests() {
   return (
     <div className="grid gap-6 lg:grid-cols-[1fr_1.2fr]">
       <form onSubmit={create} className="h-fit rounded-lg border-t-4 border-du-green bg-white p-5 shadow">
-        <h2 className="mb-4 text-lg font-bold text-du-green-dark">Ask students for a project update</h2>
+        <h2 className="mb-1 text-lg font-bold text-du-green-dark">Ask students for a project update</h2>
+        <p className="mb-4 text-xs text-gray-500">
+          Each student reports on every project title they have. A student with 3 titles sends 3 updates.
+        </p>
 
         <label className="mb-1 block text-sm text-gray-600">Title</label>
         <input className={inputCls} value={title} onChange={(e) => setTitle(e.target.value)}
@@ -263,26 +350,15 @@ export default function StatusRequests() {
       </form>
 
       <div>
-        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-          <h2 className="text-lg font-bold text-du-green-dark">Requests sent</h2>
-          <button
-            onClick={doExport}
-            disabled={exporting}
-            className="rounded-full border border-du-green-dark px-4 py-1 text-sm font-semibold text-du-green-dark hover:bg-green-50 disabled:opacity-60"
-          >
-            {exporting ? 'Preparing...' : '⬇ Export projects and status'}
-          </button>
-        </div>
-        {exportError && <p className="mb-3 text-sm text-du-red">{exportError}</p>}
+        <h2 className="mb-3 text-lg font-bold text-du-green-dark">Requests sent</h2>
         {listError && <p className="mb-3 text-sm text-du-red">{listError}</p>}
         {loading && <p className="text-gray-400">Loading...</p>}
         {!loading && requests.length === 0 && <p className="text-gray-400">No requests yet.</p>}
 
         <div className="space-y-3">
           {requests.map((r) => {
-            const total = recipientCount[r.id] ?? 0
-            const done = answerCount[r.id] ?? 0
-            const pct = total ? Math.round((done / total) * 100) : 0
+            const s = stats[r.id] ?? { total: 0, complete: 0, partial: 0 }
+            const pct = s.total ? Math.round((s.complete / s.total) * 100) : 0
             const closed = r.deadline && new Date(r.deadline) < new Date()
             return (
               <div key={r.id} className="rounded-lg bg-white p-4 shadow">
@@ -303,7 +379,10 @@ export default function StatusRequests() {
                   <div className="h-full bg-du-green" style={{ width: `${pct}%` }} />
                 </div>
                 <div className="mt-2 flex items-center justify-between text-sm">
-                  <span className="text-gray-600">{done} of {total} responded</span>
+                  <span className="text-gray-600">
+                    {s.complete} of {s.total} students complete
+                    {s.partial > 0 && <span className="text-yellow-700"> · {s.partial} incomplete</span>}
+                  </span>
                   <button onClick={() => setViewing(r)} className="font-semibold text-du-blue hover:underline">
                     View responses
                   </button>

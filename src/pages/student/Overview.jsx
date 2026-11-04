@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
+import { studentProgress } from '../../lib/statusProgress'
 import ContactBox from '../../components/ContactBox'
 import TelegramLink from './TelegramLink'
 
@@ -29,26 +30,28 @@ export default function Overview({ student, incubationId, go }) {
       supabase.from('events').select('title, created_at')
         .order('created_at', { ascending: false }).limit(1).maybeSingle(),
       supabase.from('status_requests').select('id, deadline'),
-      supabase.from('status_submissions').select('request_id').eq('student_id', student.id),
-      supabase.from('project_titles').select('id', head).eq('student_id', student.id),
+      supabase.from('status_submissions').select('request_id, title_id').eq('student_id', student.id),
+      supabase.from('project_titles').select('id').eq('student_id', student.id),
       supabase.from('projects').select('id', head).eq('student_id', student.id),
       supabase.from('ip_records').select('id', head).eq('student_id', student.id),
     ]).then(([room, ev, rq, sb, tt, pr, ip]) => {
-      const answered = new Set((sb.data ?? []).map((x) => x.request_id))
+      const titles = tt.data ?? []
       const now = new Date()
       const waiting = (rq.data ?? []).filter(
-        (r) => !answered.has(r.id) && (!r.deadline || new Date(r.deadline) > now)
+        (r) =>
+          (!r.deadline || new Date(r.deadline) > now) &&
+          !studentProgress(titles, (sb.data ?? []).filter((x) => x.request_id === r.id)).complete
       ).length
       setD({
         room: room.data?.rooms ?? null,
         event: ev.data ?? null,
         waiting,
-                titles: tt.count ?? 0,
+        titles: titles.length,
         projects: pr.count ?? 0,
         rights: ip.count ?? 0,
       })
     })
-  }, [student.id, student.proposed_titles])
+  }, [student.id])
 
   if (!d) return <p className="text-gray-400">Loading...</p>
 
@@ -59,16 +62,16 @@ export default function Overview({ student, incubationId, go }) {
         Incubation ID:{' '}
         <span className="font-mono font-bold text-du-maroon">{incubationId ?? '...'}</span>
       </p>
-       
-             <TelegramLink />
-             
+
+      <TelegramLink />
+
       {d.waiting > 0 && (
         <button
           onClick={() => go('status')}
           className="mb-5 flex w-full items-center justify-between rounded-lg border border-yellow-300 bg-yellow-50 px-4 py-3 text-left text-sm font-semibold text-yellow-800"
         >
           <span>
-            📋 {d.waiting} project status {d.waiting === 1 ? 'request is' : 'requests are'} waiting for your answer
+            📋 {d.waiting} project status {d.waiting === 1 ? 'request is' : 'requests are'} waiting for your update
           </span>
           <span>Answer →</span>
         </button>
@@ -115,7 +118,8 @@ export default function Overview({ student, incubationId, go }) {
           Change your profile photo or ID photo
         </Tile>
       </div>
-            <ContactBox className="mt-6" />
+
+      <ContactBox className="mt-6" />
     </div>
   )
 }

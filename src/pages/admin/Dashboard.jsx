@@ -95,7 +95,8 @@ export default function Dashboard() {
         seatsUsed: assigns.data.length,
         waitingForSeat: approvedProfile.filter((s) => !assignedIds.has(s.id)).length,
         stageCounts,
-        noAnswer: base.length - latestBase.length,
+        noAnswer: base.length - new Set(latestBase.map((l) => l.student_id)).size,
+        projectCount: latestBase.length,
         baseCount: base.length,
         upcoming: upcoming.data,
         pool: pool.data,
@@ -207,13 +208,13 @@ export default function Dashboard() {
         ) : (
           <div className="space-y-3">
             {data.stageCounts.map((st) => {
-              const pct = Math.round((st.total / data.baseCount) * 100)
+              const pct = Math.round((st.total / Math.max(data.projectCount, 1)) * 100)
               return (
                 <div key={st.key}>
                   <div className="mb-1 flex justify-between text-sm">
                     <span className="font-semibold">{st.label}</span>
                     <span className="text-gray-500">
-                      {st.total} {st.total === 1 ? 'student' : 'students'}
+                      {st.total} {st.total === 1 ? 'project' : 'projects'}
                       {st.key !== 'completed' && st.total > 0 && ` (${st.finished} finished this stage)`}
                     </span>
                   </div>
@@ -234,7 +235,7 @@ export default function Dashboard() {
             </div>
           </div>
         )}
-        <p className="mt-4 text-xs text-gray-500">Each student is counted once, using their most recent answer.</p>
+        <p className="mt-4 text-xs text-gray-500">Each project is counted once, using its most recent answer. &ldquo;No answer yet&rdquo; counts students who have not reported on any project.</p>
         <Link to="/admin/status" className="mt-2 inline-block text-sm text-du-blue underline">Project status requests</Link>
       </Section>
 
