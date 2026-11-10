@@ -1,0 +1,385 @@
+[33mcommit f25fa362e3b418be954130c44cd5396bc5ca542c[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m
+Author: NATIOPIA10 <natnael.tsedeke@du.edu.et>
+Date:   Tue Nov 10 09:06:33 2026 +0300
+
+    Send approved student credentials via Telegram
+    
+    Update student approval to assign an incubation ID, create login credentials, and send them to linked Telegram accounts. Include the optional site login URL and add Deno import mappings.
+
+[33mcommit 8de508b266bfb9a54c58a0e0f2979bc33db8de71[m
+Author: NATIOPIA10 <natnael.tsedeke@du.edu.et>
+Date:   Mon Nov 9 17:43:11 2026 +0300
+
+    Use npm ci for Vercel installs
+    
+    Configure Vercel to install dependencies with npm ci for reproducible deployments.
+
+[33mcommit 4af7d3fb5973c9f1aa1eb15fc81cfd52469544fc[m
+Author: NATIOPIA10 <natnael.tsedeke@du.edu.et>
+Date:   Mon Nov 9 17:28:07 2026 +0300
+
+    Document Vercel deployment setup
+    
+    Replace the default Vite README with project setup, deployment, environment variable, and Supabase security guidance. Ignore Vercel metadata and environment files in the deployment directory.
+
+[33mcommit 53830dc7d2af3f878e08ab4792a9400c13b2f61e[m
+Author: NATIOPIA10 <natnael.tsedeke@du.edu.et>
+Date:   Mon Nov 9 17:21:29 2026 +0300
+
+    Add student approval Edge Function
+    
+    Add Supabase configuration and an admin-only function that approves eligible students, assigns their incubation ID, creates a temporary login, and sends credentials through Telegram when linked.
+
+[33mcommit 618ed2aabb4bb2635bdd1ddd80f4e7c73a455678[m
+Author: NATIOPIA <natnaeltsedeke@gmail.com>
+Date:   Wed Nov 4 13:38:38 2026 +0300
+
+    new
+
+[33mcommit d69d0b532fce7760818b324329e946aa7fdde6b1[m
+Author: NATIOPIA10 <natnael.tsedeke@du.edu.et>
+Date:   Wed Oct 28 13:58:33 2026 +0300
+
+    step 4 updated
+
+[33mcommit ac40b4997b00cbefa2fa2c95d81f0b245e4023c8[m
+Author: NATIOPIA10 <natnael.tsedeke@du.edu.et>
+Date:   Tue Oct 27 08:13:47 2026 +0300
+
+    website content adjustable by the admin
+
+[33mcommit 62c657eb321c0d9e63fdc434d6d5a969ca2cbaaa[m
+Author: NATIOPIA10 <natnael.tsedeke@du.edu.et>
+Date:   Tue Oct 27 05:37:00 2026 +0300
+
+    added a website to publish new things and about the institution
+    
+    added a website to publish new things and about the institution
+
+[33mcommit 80a647a2d94d5ba72be3f14a626d5e4ec7fe7872[m
+Author: NATIOPIA10 <natnael.tsedeke@du.edu.et>
+Date:   Sat Oct 24 14:32:39 2026 +0300
+
+    Replace admin navigation emoji with icons
+    
+    Use Lucide icons throughout the admin sidebar and add a close button to the mobile menu.
+
+[33mcommit 774ad28232d1c67acc8226bd660b884977266721[m
+Author: NATIOPIA10 <natnael.tsedeke@du.edu.et>
+Date:   Fri Oct 23 13:31:10 2026 +0300
+
+    Revamp responsive admin navigation
+    
+    Replace the tab bar with a responsive, collapsible admin sidebar featuring grouped navigation, pending-item badges, and account controls. Adjust print styles so the admin frame does not clip printed pages.
+
+[33mcommit 72d345730db8dfe79b87cc465dcd172901921398[m
+Author: NATIOPIA10 <natnael.tsedeke@du.edu.et>
+Date:   Thu Oct 22 13:31:00 2026 +0300
+
+    Add password setup and SMS outbox pages
+    
+    Add a token-based password setup page and an admin SMS outbox for reviewing, testing, and tracking messages. Clarify the Telegram-unlinked student notice.
+
+[33mcommit ce1d4c9a69a45f128a3190b4ff7a54f5a8ba8da1[m
+Author: NATIOPIA10 <natnael.tsedeke@du.edu.et>
+Date:   Wed Oct 21 17:40:50 2026 +0300
+
+    Add registration poster and certificate export
+    
+    Add an admin poster page with configurable registration dates, QR code, and PNG or PDF output. Allow admins to export issued certificates to Excel.
+
+[33mcommit 31f1fee2aaa1721b78d2271d212b5d74988d129d[m
+Author: NATIOPIA10 <natnael.tsedeke@du.edu.et>
+Date:   Mon Oct 19 20:52:37 2026 +0300
+
+    Add applicant registration corrections
+    
+    Let admins return registrations with correction instructions and a private edit link. Applicants can update their details, project titles, and optionally their ID photo; admins can track corrections, resend links, or cancel a return.
+
+[33mcommit 2557434294f4a2d4ddad1a96d8ba015d145cd131[m
+Author: NATIOPIA10 <natnael.tsedeke@du.edu.et>
+Date:   Mon Oct 19 14:51:32 2026 +0300
+
+    Add photo changes admin tab
+    
+    Add a navigation tab for photo changes in the admin layout.
+
+[33mcommit cbcaa8bdb913003f9113d09fa50ddcf49e6f07f9[m
+Author: NATIOPIA10 <natnael.tsedeke@du.edu.et>
+Date:   Mon Oct 19 14:38:07 2026 +0300
+
+    Add student photo change requests
+    
+    Let students submit profile and university ID photo changes for admin review. Add admin approval and rejection tools with a dashboard count, and let students withdraw profiles under review to edit them again.
+
+[33mcommit 9fd7945dc21d4de738064c5433227af9ee06e833[m
+Author: NATIOPIA10 <natnael.tsedeke@du.edu.et>
+Date:   Mon Oct 19 12:55:39 2026 +0300
+
+    Make project titles editable after registration
+    
+    Require two titles at registration and let students add, edit, and delete titles while maintaining that minimum. Update admin views, dashboard counts, and exports to reflect the current titles.
+
+[33mcommit 8541ba13890187301563f82d42b0fa0df2722b6b[m
+Author: NATIOPIA10 <natnael.tsedeke@du.edu.et>
+Date:   Sun Oct 18 23:28:47 2026 +0300
+
+    Recover from stale Vite asset preloads
+    
+    Reload once when Vite reports a preload error, and exclude asset paths from Vercel's SPA fallback so missing assets return the correct response.
+
+[33mcommit dbe87ec02b2f3c5a266f6137bfdf99756e403809[m
+Author: NATIOPIA10 <natnael.tsedeke@du.edu.et>
+Date:   Sun Oct 18 22:59:29 2026 +0300
+
+    Remove personal details from project exports
+    
+    Exclude university ID, username, and phone from project and status sheets; simplify project title rows by removing title source metadata.
+
+[33mcommit ce9d804d568d62afaaa2454011dd2a63c7e1d221[m
+Author: NATIOPIA10 <natnael.tsedeke@du.edu.et>
+Date:   Sun Oct 18 22:42:50 2026 +0300
+
+    Add student project showcase
+    
+    Let students browse verified projects, search and filter by deployment status, and open live sites. Add admin controls to hide or show verified projects, and clarify that code links remain private.
+
+[33mcommit c101697859323f4d77bea4228cc9b8bed4af6d86[m
+Author: NATIOPIA10 <natnael.tsedeke@du.edu.et>
+Date:   Sun Oct 18 18:00:19 2026 +0300
+
+    Update support Telegram username
+    
+    Point the contact configuration to the new `dillaincubationbot` Telegram account.
+
+[33mcommit b5b4146a3a8513c4ebc51538e2fc31d63409e674[m
+Author: NATIOPIA10 <natnael.tsedeke@du.edu.et>
+Date:   Sun Oct 18 17:53:47 2026 +0300
+
+    Add phone validation and admin reset workflow
+    
+    Validate Ethiopian mobile numbers during registration and let admins review, reset, or dismiss password reset requests from Support. Surface open reset requests on the dashboard.
+
+[33mcommit 4dcd648b50fcaff9978ad133c30e9849d37722a0[m
+Author: NATIOPIA10 <natnael.tsedeke@du.edu.et>
+Date:   Sun Oct 18 17:22:54 2026 +0300
+
+    Update Dashboard.jsx
+
+[33mcommit ba23ba2915b95a3f5094f3f1762e3665b4dd4da8[m
+Author: NATIOPIA10 <natnael.tsedeke@du.edu.et>
+Date:   Sun Oct 18 17:10:28 2026 +0300
+
+    Add admin Telegram support inbox
+    
+    Add an admin support page for viewing and replying to student Telegram messages, show unread-message counts on the dashboard, and provide Telegram link management and chat access in student details.
+
+[33mcommit 163e6cf4c2ee44ea5e55035c2ea6fe70092047d6[m
+Author: NATIOPIA10 <natnael.tsedeke@du.edu.et>
+Date:   Sun Oct 18 13:00:50 2026 +0300
+
+    Add Telegram account linking
+    
+    Add a student overview panel that generates a Telegram link code, displays a QR code and copyable /start command, and checks for successful linking.
+
+[33mcommit 986992f4bffdb0d059f71fe99c584d77cd1e0bec[m
+Author: NATIOPIA10 <natnael.tsedeke@du.edu.et>
+Date:   Sat Oct 17 21:53:26 2026 +0300
+
+    Set support contact phone number
+    
+    Replace the placeholder phone number in the contact configuration with the support phone number.
+
+[33mcommit b4b39b5ec6643a3560e62becf5f87ea9668b99b0[m
+Author: NATIOPIA10 <natnael.tsedeke@du.edu.et>
+Date:   Sat Oct 17 21:35:34 2026 +0300
+
+    Add contact support details to student pages
+    
+    Add configurable Incubation Center contact information and display it on the login and student overview pages, including password-reset guidance.
+
+[33mcommit 86655c16a59fdff2bb60f9a7f642e624940b5061[m
+Author: NATIOPIA10 <natnael.tsedeke@du.edu.et>
+Date:   Sat Oct 17 21:15:22 2026 +0300
+
+    Show Telegram delivery status in admin
+    
+    Add Telegram link indicators to registration records and approval details. Include the current site URL in approval and password-reset requests, and show whether credentials were sent, failed, or could not be sent because Telegram is not linked.
+
+[33mcommit 17e2d29a8939788345e717bf9d3992dbd24527e9[m
+Author: NATIOPIA10 <natnael.tsedeke@du.edu.et>
+Date:   Sat Oct 17 18:03:45 2026 +0300
+
+    Remove @ from Telegram bot username
+    
+    Match the configured username to the comment's expected format: without the @ prefix.
+
+[33mcommit 8f9acd805f611e899a499b01106b37c1707a3181[m
+Author: NATIOPIA10 <natnael.tsedeke@du.edu.et>
+Date:   Sat Oct 17 17:48:03 2026 +0300
+
+    Prefix Telegram bot username with @
+    
+    Update the configured Telegram bot username to include the @ prefix.
+
+[33mcommit 97083116ef101b7fdb9de344e61c2efef1c3d3ff[m
+Author: NATIOPIA10 <natnael.tsedeke@du.edu.et>
+Date:   Sat Oct 17 17:37:57 2026 +0300
+
+    Add Telegram link retry after registration
+    
+    Retain the registration details and extract Telegram link setup into a reusable function, allowing users to retry link creation when the initial attempt fails.
+
+[33mcommit 27678b913c32e74121473e4878a4503abe12fdb0[m
+Author: NATIOPIA10 <natnael.tsedeke@du.edu.et>
+Date:   Sat Oct 17 17:25:54 2026 +0300
+
+    Correct year-of-study option values
+    
+    Align the registration form's year values with their displayed labels, correcting the options for 2nd through 5th year.
+
+[33mcommit 2de14b705a8f6699e0802c2101c3076f8f41878c[m
+Author: NATIOPIA10 <natnael.tsedeke@du.edu.et>
+Date:   Sat Oct 17 16:45:11 2026 +0300
+
+    Automate Telegram login delivery
+    
+    Add Telegram account linking during registration and send temporary credentials after admin approval. Validate and normalize student registration details, and remove admin spreadsheet exports.
+
+[33mcommit 69711e82e1e78d0e2152e4c630026b569114bb30[m
+Author: NATIOPIA10 <natnael.tsedeke@du.edu.et>
+Date:   Sat Oct 17 16:08:16 2026 +0300
+
+    Add Telegram linking to registration
+    
+    Show students a one-time Telegram link and QR code after registration, with a copyable bot command. Add Supabase Edge Function configuration and bot username settings.
+
+[33mcommit bb128f736a874cb9826cc742b8c1539c42f10dce[m
+Author: NATIOPIA10 <natnael.tsedeke@du.edu.et>
+Date:   Sat Oct 17 14:16:01 2026 +0300
+
+    Add Excel exports for admin records
+    
+    Add admin downloads for approved profiles, issued certificates, and student projects, copyrights, and patents, including student details and verification data.
+
+[33mcommit fa740656602444a5842bdddea48da7846c62fe21[m
+Author: NATIOPIA10 <natnael.tsedeke@du.edu.et>
+Date:   Sat Oct 17 14:05:49 2026 +0300
+
+    Clarify university ID format
+    
+    Update registration validation and field guidance to explain the flexible capital-letter prefix and automatically capitalized input.
+
+[33mcommit e72068bdae1bc0222a35abb4fc4fb13b70bff0fb[m
+Author: NATIOPIA10 <natnael.tsedeke@du.edu.et>
+Date:   Sat Oct 17 13:39:41 2026 +0300
+
+    Correct year-of-study option values
+    
+    Align registration year values and labels so second through fifth year map to values 2 through 5.
+
+[33mcommit 7fc85aed8034e487cb2ea3e8da224dfd08e90e75[m
+Author: NATIOPIA10 <natnael.tsedeke@du.edu.et>
+Date:   Fri Oct 16 23:43:06 2026 +0300
+
+    Add student reactivation and status history
+    
+    Allow admins to reactivate deactivated students, explain their restored access, and review activation history and reasons in the student modal.
+
+[33mcommit 53da2488cdf7b76421b32a465a14d56aada9b241[m
+Author: NATIOPIA10 <natnael.tsedeke@du.edu.et>
+Date:   Fri Oct 16 23:20:26 2026 +0300
+
+    Add student password change flow
+    
+    Let students change their password from the dashboard, including before profile approval, and clarify the temporary-password process on login.
+
+[33mcommit 1da82e546a094b328d99b36a3ffb423a7951f183[m
+Author: NATIOPIA10 <natnael.tsedeke@du.edu.et>
+Date:   Fri Oct 16 21:42:40 2026 +0300
+
+    Add admin project and status export
+    
+    Let administrators download an Excel workbook with student project titles and project status submissions, including request, deadline, and submission details.
+
+[33mcommit a3d0e657241959bfe4d4b8c3be73a9716e8f50ae[m
+Author: NATIOPIA10 <natnael.tsedeke@du.edu.et>
+Date:   Fri Oct 16 21:37:25 2026 +0300
+
+    Validate student names and university IDs
+    
+    Normalize university IDs to uppercase and enforce the expected format during registration. Strip digits from name fields and reject numeric names in registration and profile forms.
+
+[33mcommit bd4f19f2288f4ab884eccb376773ed61e7b4e83e[m
+Author: NATIOPIA10 <natnael.tsedeke@du.edu.et>
+Date:   Fri Oct 16 21:30:31 2026 +0300
+
+    Standardize year-of-study labels
+    
+    Add a shared year-label helper and use it in student exports, profile reviews, and registration views so stored year values display consistently.
+
+[33mcommit 4b8159ef15dd116ea6071e86404ea62221cef1e2[m
+Author: NATIOPIA10 <natnael.tsedeke@du.edu.et>
+Date:   Fri Oct 16 18:55:48 2026 +0300
+
+    Update Students.jsx
+
+[33mcommit cd7d469c4c5fe9e2602b7250376be23ef77b29a4[m
+Author: NATIOPIA10 <natnael.tsedeke@du.edu.et>
+Date:   Fri Oct 16 18:45:25 2026 +0300
+
+    Add student Excel export
+    
+    Add an admin export for active and deactivated students, generating a formatted Excel workbook with student, room, and project details.
+
+[33mcommit 81f66b50b017fa5015adaef1d1e5cba7e1264f63[m
+Author: NATIOPIA10 <natnael.tsedeke@du.edu.et>
+Date:   Fri Oct 16 14:07:17 2026 +0300
+
+    Update approval messages for profile and ID card
+
+[33mcommit ba64fdf85e1c57fc504058de1420db1fc523d461[m
+Author: NATIOPIA10 <natnael.tsedeke@du.edu.et>
+Date:   Fri Oct 16 14:03:08 2026 +0300
+
+    Update login instructions and username field label
+
+[33mcommit 38cec5f92fd55a6ce9b8cb0ec0fa87a979a8fe07[m
+Author: NATIOPIA10 <natnael.tsedeke@du.edu.et>
+Date:   Fri Oct 16 13:30:37 2026 +0300
+
+    Update title to 'Dilla University Incubation Center'
+
+[33mcommit 9ba19cd587444e3dfa4c321a353954f4ed5d6582[m
+Author: NATIOPIA10 <natnael.tsedeke@du.edu.et>
+Date:   Fri Oct 16 13:29:28 2026 +0300
+
+    Replace favicon.svg with new design
+    
+    Updated the favicon SVG to a new design with a larger viewBox and added a text element.
+
+[33mcommit d8124388e24dd211e775170461f588ce513aebf3[m
+Author: NATIOPIA10 <natnael.tsedeke@du.edu.et>
+Date:   Thu Oct 15 23:54:47 2026 +0300
+
+    Add registration dates page
+
+[33mcommit 3b14d989462fac43d7c7cd53b2153a126d2ed736[m
+Author: NATIOPIA10 <natnael.tsedeke@du.edu.et>
+Date:   Thu Oct 15 22:54:06 2026 +0300
+
+    Add announcement images and links, tabbed student dashboard, project titles
+
+[33mcommit 19e935c4da24b2691f9077372bf7b9635f0434d3[m
+Author: NATIOPIA10 <natnael.tsedeke@du.edu.et>
+Date:   Thu Oct 15 16:48:52 2026 +0300
+
+    Add student project title tracking
+    
+    Collect proposed project titles during registration, show them in admin registration and student views, and let students add or delete additional titles from their dashboard.
+
+[33mcommit 99ca3b740bc99d196eac31534d3db6122f27899f[m
+Author: NATIOPIA10 <natnael.tsedeke@du.edu.et>
+Date:   Thu Oct 15 11:55:58 2026 +0300
+
+    Dilla incubation center system
